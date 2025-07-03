@@ -224,4 +224,3 @@ If you use AgenticEvals in your research, please cite:
 ## Support
 
 - Bug Reports: [GitHub Issues](https://github.com/Gorn41/AgenticEvals/issues)
-- Discussions: [GitHub Discussions](https://github.com/Gorn41/AgenticEvals/discussions)
