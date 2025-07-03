@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Environment setup script for LLM-AgentTypeEval.
+Environment setup script for AgenticEvals.
 
 This script helps users set up their API keys and configuration.
 """
@@ -90,7 +90,7 @@ def test_setup():
         config_manager = get_config_manager()
         api_key = config_manager.config.api_keys.get("google")
         
-        if api_key and api_key != "your_google_api_key_here":
+        if api_key and len(api_key.strip()) > 10 and not api_key.startswith("your_"):
             print("Configuration loaded successfully!")
             print(f"Gemini API key found: {api_key[:8]}...")
             return True
@@ -106,7 +106,7 @@ def test_setup():
 
 def main():
     """Main setup routine."""
-    print("LLM-AgentTypeEval Environment Setup")
+    print("AgenticEvals Environment Setup")
     print("=" * 40)
     
     # Check if we're in the right directory

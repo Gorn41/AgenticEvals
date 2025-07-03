@@ -1,16 +1,21 @@
 """
-Base benchmark interface for LLM-AgentTypeEval.
+Base benchmark interface for AgenticEvals.
 """
 
-from abc import ABC, abstractmethod
-from typing import List, Dict, Any, Optional
-from dataclasses import dataclass
-from enum import Enum
+import asyncio
 import time
-import uuid
+from abc import ABC, abstractmethod
+from enum import Enum
+from typing import List, Dict, Any, Optional
+from dataclasses import dataclass, field
+from datetime import datetime, timezone
+
+from ..models.base import BaseModel, ModelResponse
+from ..utils.logging import get_logger
+
+logger = get_logger(__name__)
 
 from pydantic import BaseModel as PydanticBaseModel
-from ..models.base import BaseModel, ModelResponse
 
 
 class AgentType(Enum):

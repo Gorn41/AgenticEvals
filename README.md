@@ -1,235 +1,227 @@
-# LLM-AgentTypeEval
+# AgenticEvals
 
-A comprehensive benchmark for evaluating Large Language Models (LLMs) across the five classic AI agent architectures:
+A comprehensive benchmark for evaluating Large Language Models (LLMs) across five classic AI agent types for systematic agent capability assessment.
 
-1. **Simple Reflex Agent** - Immediate rule-based responses
-2. **Model-Based Reflex Agent** - Responses using internal state/memory  
-3. **Goal-Based Agent** - Planning toward explicit goals
-4. **Utility-Based Agent** - Utility maximization under trade-offs
-5. **Learning Agent** - Adaptation over episodes
+## Overview
+
+AgenticEvals provides a structured framework to evaluate how well LLMs can embody different agent architectures:
+
+- **Simple Reflex Agents**: Condition-action rules
+- **Model-Based Reflex Agents**: Internal state tracking  
+- **Goal-Based Agents**: Goal-directed reasoning
+- **Utility-Based Agents**: Utility maximization
+- **Learning Agents**: Adaptive behavior
 
 ## Quick Start
 
-### Prerequisites
+### 1. Installation
 
-- Python 3.8+
-- Google API key for Gemini models
-
-### Installation
-
-1. **Clone the repository:**
 ```bash
-git clone <repository-url>
+git clone https://github.com/Gorn41/AgenticEvals.git
 cd AgenticEvals
-```
-
-2. **Install dependencies:**
-```bash
 pip install -r requirements.txt
 ```
 
-3. **Set up your API key:**
-```bash
-# Get your Gemini API key from: https://makersuite.google.com/app/apikey
-export GOOGLE_API_KEY="your-gemini-api-key-here"
+### 2. API Key Setup
 
-# Or create a .env file:
-cp .env.example .env
-# Edit .env and add your Gemini API key
+```bash
+python3 setup_env.py
+# Follow the prompts to set up your Gemini API key
 ```
 
-4. **Test the installation:**
+Or set manually:
 ```bash
-python quick_start.py
+export GOOGLE_API_KEY="your-gemini-api-key"
 ```
 
-### Basic Usage
+### 3. Run Example
+
+```bash
+python3 quick_start.py
+```
+
+## Usage
+
+### Basic Example
 
 ```python
-import asyncio
-from src.models.loader import load_gemini
-from src.benchmark.loader import load_benchmark
+from models.loader import load_gemini
+from benchmark.loader import load_benchmark
 
-async def main():
-    # Load Gemini model
-    model = load_gemini("gemini-1.5-flash", temperature=0.1)
-    
-    # Load a benchmark
-    benchmark = load_benchmark("traffic_light_simple")
-    
-    # Run evaluation
-    result = await benchmark.run_benchmark(model)
-    
-    # View results
-    print(f"Score: {result.overall_score:.2f}")
-    print(f"Success Rate: {result.get_success_rate():.1%}")
+# Load model
+model = load_gemini("gemini-2.5-pro")
 
-asyncio.run(main())
+# Load and run benchmark
+benchmark = load_benchmark("traffic_light_simple")
+results = await benchmark.run_benchmark(model)
+
+print(f"Overall Score: {results.overall_score}")
+print(f"Success Rate: {results.get_success_rate()}")
 ```
 
-## Available Benchmarks
+### Available Benchmarks
+
+```python
+from benchmark.loader import get_available_benchmarks
+
+benchmarks = get_available_benchmarks()
+for agent_type, benchmark_list in benchmarks.items():
+    print(f"{agent_type}: {benchmark_list}")
+```
+
+### Custom Model Configuration
+
+```python
+model = load_gemini(
+    "gemini-2.5-flash",
+    temperature=0.1,
+    max_tokens=1000,
+    top_p=0.9
+)
+```
+
+## Project Structure
+
+```
+AgenticEvals/
+├── src/
+│   ├── models/           # Model implementations
+│   ├── benchmark/        # Benchmark framework
+│   ├── benchmarks/       # Specific benchmarks
+│   └── utils/           # Utilities
+├── tests/               # Test suite
+└── examples/           # Usage examples
+```
+
+## Supported Models
+
+- **Gemini 2.5 Pro** - Most capable model
+- **Gemini 2.5 Flash** - Fast and efficient
+
+Easy to extend with new model providers.
+
+## Benchmark Types
 
 ### Simple Reflex Agent
-- **traffic_light_simple**: Traffic light response benchmark testing immediate rule-based responses
+- **Traffic Light**: Basic stimulus-response scenarios
+- **Security Guard**: Pattern recognition tasks
 
-*More benchmarks coming soon for each agent type...*
+### Model-Based Reflex Agent  
+- **Navigation**: State-aware pathfinding
+- **Inventory Management**: Resource tracking
 
-## 🏗️ Architecture
+### Goal-Based Agent
+- **Task Planning**: Multi-step goal achievement
+- **Problem Solving**: Constraint satisfaction
 
-### Core Components
+### Utility-Based Agent
+- **Resource Allocation**: Optimization under constraints
+- **Decision Making**: Trade-off scenarios
 
-- **`src/models/`**: Model loading and calling functionality
-  - `base.py`: Abstract model interface
-  - `gemini.py`: Gemini model implementation
-  - `loader.py`: Model factory and loading utilities
+### Learning Agent
+- **Adaptation**: Performance improvement over time
+- **Strategy Evolution**: Dynamic behavior modification
 
-- **`src/benchmark/`**: Benchmark framework
-  - `base.py`: Abstract benchmark interface
-  - `loader.py`: Benchmark loading utilities
-  - `registry.py`: Benchmark registration system
+## Configuration
 
-- **`src/benchmarks/`**: Benchmark implementations
-  - `simple_reflex_example.py`: Example traffic light benchmark
+Create a `.env` file:
+```bash
+# Gemini API Configuration
+GOOGLE_API_KEY=your_gemini_api_key_here
 
-- **`src/utils/`**: Utilities
-  - `logging.py`: Logging configuration
-  - `config.py`: Configuration management
+# Optional: Alternative key name
+GEMINI_API_KEY=your_gemini_api_key_here
+```
+
+Or use YAML configuration:
+```yaml
+# config.yaml
+models:
+  google: "your-gemini-api-key"
+
+benchmarks:
+  timeout_seconds: 30
+  max_retries: 3
+  collect_detailed_metrics: true
+```
+
+## Testing
+
+```bash
+# Run all tests
+python3 run_tests.py
+
+# Unit tests only
+python3 run_tests.py --unit
+
+# Integration tests (requires API key)  
+python3 run_tests.py --integration
+
+# With coverage
+python3 run_tests.py --coverage
+```
+
+## Development
 
 ### Adding New Models
 
-```python
-from src.models.base import BaseModel, ModelConfig, ModelResponse
-
-class MyCustomModel(BaseModel):
-    async def generate(self, prompt: str, **kwargs) -> ModelResponse:
-        # Implement your model's generation logic
-        pass
-    
-    def generate_sync(self, prompt: str, **kwargs) -> ModelResponse:
-        # Implement synchronous version
-        pass
-
-# Register the model
-from src.models.loader import ModelLoader
-ModelLoader.register_model("my-model", MyCustomModel)
-```
+1. Implement the `BaseModel` interface
+2. Register in `models/loader.py`
+3. Add tests in `tests/test_models/`
 
 ### Adding New Benchmarks
 
-```python
-from src.benchmark.base import BaseBenchmark, Task, TaskResult, AgentType
-from src.benchmark.registry import benchmark
+1. Inherit from `BaseBenchmark`
+2. Register with `@register_benchmark` decorator
+3. Implement required methods
+4. Add tests in `tests/test_benchmarks/`
 
-@benchmark(
-    name="my_benchmark",
-    agent_type=AgentType.SIMPLE_REFLEX,
-    description="My custom benchmark"
-)
+Example:
+```python
+from benchmark.base import BaseBenchmark
+from benchmark.registry import register_benchmark
+
+@register_benchmark("my_benchmark", AgentType.SIMPLE_REFLEX)
 class MyBenchmark(BaseBenchmark):
-    def get_tasks(self) -> List[Task]:
+    def get_tasks(self):
         # Return list of tasks
         pass
     
-    async def evaluate_task(self, task: Task, model: BaseModel) -> TaskResult:
-        # Evaluate a single task
+    async def evaluate_task(self, task, model):
+        # Evaluate single task
         pass
     
-    def calculate_score(self, task: Task, model_response: ModelResponse) -> float:
+    def calculate_score(self, task, model_response):
         # Calculate task score
         pass
 ```
 
-## Evaluation Results
-
-Results include:
-- **Overall Score**: Weighted average across all tasks
-- **Success Rate**: Percentage of successfully completed tasks  
-- **Detailed Metrics**: Task-specific measurements
-- **Response Analysis**: Token usage, latency, etc.
-
-Example output:
-```
-Evaluation Results
-Benchmark: traffic_light_simple
-Model: gemini-1.5-flash
-Overall Score: 0.95
-Success Rate: 100.00%
-Tasks Completed: 11
-Average Execution Time: 1.23s
-```
-
-## 🔧 Configuration
-
-Configuration can be managed through:
-- Environment variables
-- YAML/JSON config files
-- Python configuration objects
-
-Example config file:
-```yaml
-default_model: "gemini-1.5-pro"
-api_keys:
-  google: "your-gemini-api-key"
-default_benchmark_config:
-  collect_detailed_metrics: true
-  save_responses: true
-  random_seed: 42
-log_level: "INFO"
-```
-
-## Examples
-
-Run the comprehensive example:
-```bash
-python example_usage.py
-```
-
-This will:
-1. Load a Gemini model
-2. Show available benchmarks
-3. Run the traffic light benchmark
-4. Display detailed results
-
-## 📝 Development
-
-### Project Structure
-```
-AgenticEvals/
-├── src/
-│   ├── models/          # Model implementations
-│   ├── benchmark/       # Benchmark framework  
-│   ├── benchmarks/      # Specific benchmarks
-│   └── utils/           # Utilities
-├── requirements.txt     # Dependencies
-├── setup.py            # Package setup
-├── example_usage.py    # Full example
-├── quick_start.py      # Quick test
-└── README.md          # This file
-```
-
-### Running Tests
-```bash
-pytest src/tests/
-```
-
-### Code Formatting
-```bash
-black src/
-isort src/
-```
-
-## 🤝 Contributing
+## Contributing
 
 1. Fork the repository
 2. Create a feature branch
-3. Add your benchmark or model implementation
-4. Add tests
+3. Add tests for new functionality
+4. Run the test suite
 5. Submit a pull request
 
-## 📄 License
+## License
 
 MIT License - see LICENSE file for details.
 
-## 🔗 References
+## Citation
 
-Based on the implementation plan for NeurIPS 2025 Datasets & Benchmarks Track submission. See `plan.md` for detailed project specification.
+If you use AgenticEvals in your research, please cite:
+
+```bibtex
+@software{agentic_evals,
+  title={AgenticEvals: A Benchmark for LLM Agent Capabilities},
+  author={Nattaput (Gorn) Namchittai},
+  year={2025},
+  url={https://github.com/Gorn41/AgenticEvals}
+}
+```
+
+## Support
+
+- Bug Reports: [GitHub Issues](https://github.com/Gorn41/AgenticEvals/issues)
+- Discussions: [GitHub Discussions](https://github.com/Gorn41/AgenticEvals/discussions)

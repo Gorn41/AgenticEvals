@@ -1,5 +1,5 @@
 """
-Logging utilities for LLM-AgentTypeEval.
+Logging utilities for AgenticEvals.
 """
 
 import sys

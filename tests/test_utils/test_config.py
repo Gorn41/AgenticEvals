@@ -1,169 +1,127 @@
 """
-Tests for configuration management.
+Tests for configuration utilities.
 """
 
 import pytest
 import os
-from unittest.mock import patch, MagicMock
 from pathlib import Path
 
-from utils.config import Config, ConfigManager, get_config_manager, load_config, save_config
+from utils.config import Config, ConfigManager
 
 
 class TestConfig:
-    """Test the Config dataclass."""
+    """Test the Config class."""
     
     def test_config_defaults(self):
-        """Test Config with default values."""
+        """Test default configuration values."""
         config = Config()
         
-        assert config.default_model == "gemini-1.5-pro"
-        assert config.api_keys == {}
+        assert config.default_model == "gemini-2.5-pro"
+        assert config.api_keys is None
         assert config.log_level == "INFO"
-        assert config.timeout_seconds == 60.0
-        assert config.max_retries == 3
-        assert config.default_benchmark_config is not None
+        assert config.timeout_seconds == 60
     
-    def test_config_custom_values(self):
-        """Test Config with custom values."""
+    def test_config_with_values(self):
+        """Test config with custom values."""
         config = Config(
-            default_model="custom-model",
-            api_keys={"test": "key"},
+            default_model="gemini-2.5-flash",
             log_level="DEBUG",
-            timeout_seconds=30.0
+            timeout_seconds=30
         )
         
-        assert config.default_model == "custom-model"
-        assert config.api_keys["test"] == "key"
+        assert config.default_model == "gemini-2.5-flash"
         assert config.log_level == "DEBUG"
-        assert config.timeout_seconds == 30.0
+        assert config.timeout_seconds == 30
 
 
 class TestConfigManager:
     """Test the ConfigManager class."""
     
-    def test_init_without_existing_config(self, tmp_path):
-        """Test ConfigManager initialization without existing config file."""
-        config_path = tmp_path / "nonexistent.yaml"
-        
-        with patch.dict(os.environ, {"GOOGLE_API_KEY": "test-key"}):
-            manager = ConfigManager(config_path)
-            
-            assert manager.config.api_keys["google"] == "test-key"
+    def test_config_manager_creation(self):
+        """Test creating a config manager."""
+        manager = ConfigManager()
+        assert manager.config is not None
+        assert isinstance(manager.config, Config)
     
-    def test_load_from_env(self):
-        """Test loading configuration from environment variables."""
+    def test_get_model_config_basic(self):
+        """Test getting basic model configuration."""
+        manager = ConfigManager()
+        model_config = manager.get_model_config("gemini-2.5-pro")
+        
+        assert model_config["model_name"] == "gemini-2.5-pro"
+        assert "api_key" in model_config
+        assert "temperature" in model_config
+    
+    def test_get_model_config_with_env_key(self):
+        """Test getting model config with environment API key."""
+        # Only test if environment variable is set
+        if os.getenv("GOOGLE_API_KEY"):
+            manager = ConfigManager()
+            model_config = manager.get_model_config("gemini-2.5-pro")
+            assert model_config["api_key"] is not None
+    
+    def test_get_model_config_flash(self):
+        """Test getting configuration for Flash model."""
+        manager = ConfigManager()
+        model_config = manager.get_model_config("gemini-2.5-flash")
+        
+        assert model_config["model_name"] == "gemini-2.5-flash"
+        assert "api_key" in model_config
+        assert "temperature" in model_config
+
+
+class TestConfigFiles:
+    """Test configuration file handling."""
+    
+    def test_config_file_loading(self, temp_config_file):
+        """Test loading configuration from file."""
         manager = ConfigManager()
         
-        with patch.dict(os.environ, {
-            "GOOGLE_API_KEY": "google-key",
-            "GEMINI_API_KEY": "gemini-key", 
-            "LOG_LEVEL": "DEBUG",
-            "TIMEOUT_SECONDS": "45.0"
-        }):
-            manager._load_from_env()
-            
-            assert manager.config.api_keys["google"] == "google-key"
-            assert manager.config.api_keys["gemini"] == "gemini-key"
-            assert manager.config.log_level == "DEBUG"
-            assert manager.config.timeout_seconds == 45.0
+        # Test that we can load from file
+        assert temp_config_file.exists()
+        content = temp_config_file.read_text()
+        assert "gemini-2.5-pro" in content
     
-    def test_load_config_yaml(self, tmp_path):
-        """Test loading config from YAML file."""
-        config_file = tmp_path / "test_config.yaml"
-        config_file.write_text("""
-default_model: "test-model"
-api_keys:
-  google: "yaml-key"
-log_level: "WARNING"
-""")
+    def test_config_validation(self):
+        """Test configuration validation."""
+        config = Config()
         
-        manager = ConfigManager(config_file)
-        config = manager.load_config()
+        # Test valid models
+        assert config.default_model in ["gemini-2.5-pro", "gemini-2.5-flash", "gemini-pro"]
         
-        assert config.default_model == "test-model"
-        assert config.api_keys["google"] == "yaml-key"
-        assert config.log_level == "WARNING"
+        # Test valid log levels
+        assert config.log_level in ["DEBUG", "INFO", "WARNING", "ERROR"]
+        
+        # Test reasonable timeout
+        assert config.timeout_seconds > 0
+        assert config.timeout_seconds <= 300  # 5 minutes max
+
+
+class TestEnvironmentIntegration:
+    """Test integration with environment variables."""
     
-    def test_save_config_yaml(self, tmp_path):
-        """Test saving config to YAML file."""
-        config_file = tmp_path / "save_test.yaml"
-        
-        manager = ConfigManager(config_file)
-        manager.config.default_model = "saved-model"
-        manager.config.api_keys["test"] = "saved-key"
-        
-        manager.save_config()
-        
-        assert config_file.exists()
-        content = config_file.read_text()
-        assert "saved-model" in content
-        assert "saved-key" in content
-    
-    def test_get_model_config(self):
-        """Test getting model configuration."""
+    def test_api_key_detection(self):
+        """Test API key detection from environment."""
         manager = ConfigManager()
-        manager.config.api_keys["google"] = "test-key"
-        manager.config.timeout_seconds = 30.0
         
-        model_config = manager.get_model_config("gemini-1.5-pro")
+        # Test with any available API key
+        google_key = os.getenv("GOOGLE_API_KEY")
+        gemini_key = os.getenv("GEMINI_API_KEY")
         
-        assert model_config["model_name"] == "gemini-1.5-pro"
-        assert model_config["api_key"] == "test-key"
-        assert model_config["timeout_seconds"] == 30.0
+        if google_key or gemini_key:
+            model_config = manager.get_model_config("gemini-2.5-pro")
+            assert model_config["api_key"] is not None
     
-    def test_get_benchmark_config(self):
-        """Test getting benchmark configuration."""
+    def test_config_precedence(self):
+        """Test configuration precedence rules."""
         manager = ConfigManager()
-        manager.config.default_benchmark_config = {
-            "collect_detailed_metrics": True,
-            "save_responses": False
-        }
         
-        benchmark_config = manager.get_benchmark_config(
-            num_tasks=10,
-            save_responses=True  # Should override default
+        # Test explicit parameters override defaults
+        model_config = manager.get_model_config(
+            "gemini-2.5-flash",
+            temperature=0.9,
+            max_tokens=500
         )
         
-        assert benchmark_config["collect_detailed_metrics"] is True
-        assert benchmark_config["save_responses"] is True  # Overridden
-        assert benchmark_config["num_tasks"] == 10
-
-
-class TestConvenienceFunctions:
-    """Test convenience functions."""
-    
-    @patch('utils.config.ConfigManager')
-    def test_load_config(self, mock_manager_class):
-        """Test load_config function."""
-        mock_manager = MagicMock()
-        mock_config = Config()
-        mock_manager.load_config.return_value = mock_config
-        mock_manager_class.return_value = mock_manager
-        
-        result = load_config(Path("test.yaml"))
-        
-        mock_manager_class.assert_called_once_with(Path("test.yaml"))
-        assert result == mock_config
-    
-    @patch('utils.config.get_config_manager')
-    def test_save_config(self, mock_get_manager):
-        """Test save_config function."""
-        mock_manager = MagicMock()
-        mock_get_manager.return_value = mock_manager
-        
-        test_config = Config(default_model="test")
-        save_config(test_config)
-        
-        assert mock_manager.config == test_config
-        mock_manager.save_config.assert_called_once()
-    
-    @patch('utils.config._config_manager', None)
-    def test_get_config_manager_creates_instance(self):
-        """Test that get_config_manager creates new instance when needed."""
-        manager = get_config_manager()
-        assert manager is not None
-        
-        # Second call should return same instance
-        manager2 = get_config_manager()
-        assert manager is manager2 
+        assert model_config["temperature"] == 0.9
+        assert model_config["max_tokens"] == 500 

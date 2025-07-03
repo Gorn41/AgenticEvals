@@ -1,5 +1,5 @@
 """
-Benchmark loader for LLM-AgentTypeEval.
+Benchmark loader for AgenticEvals.
 """
 
 import os
@@ -52,14 +52,28 @@ class BenchmarkLoader:
         if not benchmark_class:
             raise ValueError(f"Benchmark not found: {benchmark_name}")
         
-        # Create a dummy config to get info
-        dummy_config = BenchmarkConfig(
-            benchmark_name=benchmark_name,
-            agent_type=self.registry.get_benchmark_agent_type(benchmark_name)
-        )
+        # Check if the benchmark class has a static info method
+        if hasattr(benchmark_class, 'get_static_info'):
+            return benchmark_class.get_static_info()
         
-        benchmark = benchmark_class(dummy_config)
-        return benchmark.get_benchmark_info()
+        # Otherwise get info from class attributes or docstring
+        agent_type = self.registry.get_benchmark_agent_type(benchmark_name)
+        
+        info = {
+            "name": benchmark_name,
+            "agent_type": agent_type.value if agent_type else None,
+            "class_name": benchmark_class.__name__,
+            "description": benchmark_class.__doc__ or "No description available"
+        }
+        
+        # Add any additional class-level information
+        if hasattr(benchmark_class, 'BENCHMARK_DESCRIPTION'):
+            info["description"] = benchmark_class.BENCHMARK_DESCRIPTION
+        
+        if hasattr(benchmark_class, 'BENCHMARK_VERSION'):
+            info["version"] = benchmark_class.BENCHMARK_VERSION
+            
+        return info
     
     def load_benchmark(self, benchmark_name: str, **config_kwargs) -> BaseBenchmark:
         """Load a benchmark by name with given configuration."""

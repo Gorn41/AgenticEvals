@@ -1,25 +1,26 @@
-# LLM-AgentTypeEval Test Suite
+"""
+AgenticEvals Test Suite
+============================
 
-This directory contains comprehensive tests for the LLM-AgentTypeEval project.
+Comprehensive test suite for the AgenticEvals framework.
 
 ## Structure
 
 ```
 tests/
 ├── conftest.py                     # Pytest configuration and fixtures
-├── test_models/                    # Model-related tests
-│   ├── test_base.py               # Base model interface tests
-│   ├── test_gemini.py             # Gemini model implementation tests
-│   └── test_loader.py             # Model loader tests
 ├── test_benchmark/                 # Benchmark framework tests
-│   ├── test_base.py               # Base benchmark classes tests
-│   ├── test_loader.py             # Benchmark loader tests
-│   └── test_registry.py           # Benchmark registry tests
+│   ├── test_base.py               # Core benchmark classes
+│   └── test_loader.py             # Benchmark loading functionality
 ├── test_benchmarks/               # Specific benchmark tests
 │   └── test_simple_reflex_example.py
-├── test_utils/                    # Utility function tests
-│   ├── test_config.py             # Configuration management tests
-│   └── test_logging.py            # Logging utilities tests
+├── test_models/                   # Model system tests
+│   ├── test_base.py              # Base model classes
+│   ├── test_gemini.py            # Gemini model implementation
+│   └── test_loader.py            # Model loading functionality
+├── test_utils/                    # Utility tests
+│   ├── test_config.py            # Configuration management
+│   └── test_logging.py           # Logging functionality
 └── pytest.ini                    # Pytest configuration
 ```
 
@@ -27,199 +28,162 @@ tests/
 
 ### Prerequisites
 
-1. Install dependencies:
-```bash
-pip install -r requirements.txt
-```
-
-2. Install test dependencies:
+Install test dependencies:
 ```bash
 pip install pytest pytest-asyncio
 ```
 
-### Basic Test Execution
+### Basic Usage
 
-Run all tests:
 ```bash
-pytest
+# Run all tests
+python3 run_tests.py
+
+# Run specific test categories
+python3 run_tests.py --unit          # Unit tests only
+python3 run_tests.py --integration   # Integration tests only
+python3 run_tests.py --fast          # Fast tests only
+
+# Run with coverage
+python3 run_tests.py --coverage
+
+# Run specific test file
+pytest tests/test_models/test_gemini.py
+
+# Run specific test
+pytest tests/test_models/test_gemini.py::TestGeminiModel::test_init
 ```
 
-Run tests with verbose output:
-```bash
-pytest -v
-```
+## Test Categories
 
-Run specific test file:
-```bash
-pytest tests/test_models/test_loader.py
-```
+### Test Markers
 
-Run specific test class:
-```bash
-pytest tests/test_models/test_loader.py::TestModelLoader
-```
+- **Unit tests** (default): Fast, isolated tests with minimal dependencies
+- **Integration tests** (`@pytest.mark.integration`): Tests requiring API keys
+- **Slow tests** (`@pytest.mark.slow`): Tests that take longer to execute
 
-Run specific test:
-```bash
-pytest tests/test_models/test_loader.py::TestModelLoader::test_load_model_success
-```
+### Integration Tests
 
-### Test Categories
-
-Tests are organized with markers:
-
-- **Unit tests** (default): Fast, isolated tests with mocked dependencies
-- **Integration tests**: Tests that may require API keys and external services
-- **Slow tests**: Tests that take longer to run
-
-Run only unit tests:
-```bash
-pytest -m "not integration and not slow"
-```
-
-Run integration tests (requires API keys):
-```bash
-pytest -m integration
-```
-
-Skip slow tests:
-```bash
-pytest -m "not slow"
-```
-
-### Environment Setup for Integration Tests
-
-Integration tests require API keys. Set them before running:
+Integration tests require valid API keys:
 
 ```bash
-# Option 1: Use .env file (recommended)
+# Set up API keys for integration tests
 python3 setup_env.py
 
-# Option 2: Set environment variables
+# Or set environment variables directly:
 export GOOGLE_API_KEY="your-gemini-api-key"
 # or
 export GEMINI_API_KEY="your-gemini-api-key"
 ```
 
-Skip integration tests if no API key:
+### Coverage Reporting
+
+Generate coverage reports:
+
 ```bash
-pytest -m "not integration"
-```
-
-## Test Organization
-
-### Unit Tests
-- Mock external dependencies (API calls, file I/O)
-- Fast execution (< 1 second per test)
-- Test individual components in isolation
-- High coverage of edge cases and error conditions
-
-### Integration Tests
-- Test actual API calls and end-to-end workflows
-- Require valid API keys
-- May be slower due to network calls
-- Marked with `@pytest.mark.integration`
-
-### Fixtures
-
-Common fixtures are defined in `conftest.py`:
-
-- `mock_api_key`: Provides test API key
-- `sample_model_config`: Pre-configured ModelConfig
-- `sample_model_response`: Sample ModelResponse object
-- `sample_benchmark_config`: Pre-configured BenchmarkConfig
-- `sample_task`: Sample Task object
-- `mock_model`: Mocked model for testing
-- `clean_environment`: Cleans environment variables
-
-### Mocking Strategy
-
-Tests use `unittest.mock` for mocking:
-- External API calls (Gemini API)
-- File system operations
-- Environment variables
-- Network requests
-
-## Coverage
-
-Check test coverage:
-```bash
+# Install coverage tool
 pip install pytest-cov
+
+# Run with coverage
+python3 run_tests.py --coverage
+
+# Generate HTML report
 pytest --cov=src --cov-report=html
 ```
 
-View coverage report:
-```bash
-open htmlcov/index.html
-```
+## Test Design Principles
 
-## Adding New Tests
+### 1. Real Testing Over Mocking
 
-When adding new functionality:
+Tests prioritize real functionality validation:
+- Configuration and validation tests use real data structures
+- Integration tests use real API calls when possible
+- Environment-based conditional testing for external dependencies
 
-1. **Create corresponding test file** in appropriate test directory
-2. **Add unit tests** for all public methods and edge cases
-3. **Mock external dependencies** to ensure fast, reliable tests
-4. **Add integration tests** if component interacts with external services
-5. **Use appropriate markers** (`@pytest.mark.integration`, `@pytest.mark.slow`)
-6. **Update fixtures** in `conftest.py` if needed
+### 2. Clear Test Categories
+
+- **Unit tests**: Fast, isolated validation of individual components
+- **Integration tests**: Real API interactions with proper error handling
+- **Configuration tests**: Environment and setup validation
+
+### Common Fixtures
+
+Common fixtures are defined in `conftest.py`:
+
+- `api_key`: Real API key for integration tests
+- `sample_model_config`: Valid model configuration
+- `sample_model_response`: Example response data
+- `temp_config_file`: Temporary configuration for testing
+
+## Writing Tests
+
+### Guidelines
+
+1. **Use descriptive test names** that explain what is being tested
+2. **Test both success and failure cases**
+3. **Use appropriate test markers** (`@pytest.mark.integration`, `@pytest.mark.slow`)
+4. **Update fixtures** in `conftest.py` if needed
+5. **Test configuration and validation** rather than implementation details
 
 ### Example Test Structure
 
 ```python
-"""
-Tests for new functionality.
-"""
-
 import pytest
-from unittest.mock import patch, MagicMock
+import os
 
-from your_module import YourClass
+from models.loader import load_gemini
 
 
-class TestYourClass:
-    """Test the YourClass class."""
-    
-    def test_basic_functionality(self):
-        """Test basic functionality."""
-        # Arrange
-        instance = YourClass()
-        
-        # Act
-        result = instance.method()
-        
-        # Assert
-        assert result == expected_value
-    
-    @patch('your_module.external_dependency')
-    def test_with_mocked_dependency(self, mock_dependency):
-        """Test with mocked external dependency."""
-        # Setup mock
-        mock_dependency.return_value = "mocked_result"
-        
-        # Test
-        instance = YourClass()
-        result = instance.method_using_dependency()
-        
-        # Verify
-        assert result == "expected_based_on_mock"
-        mock_dependency.assert_called_once()
+class TestModelIntegration:
+    """Integration tests for model functionality."""
     
     @pytest.mark.integration
-    def test_integration_scenario(self):
-        """Test integration scenario (requires real dependencies)."""
-        # Skip if prerequisites not met
-        if not os.getenv("REQUIRED_API_KEY"):
+    def test_model_loading(self):
+        """Test loading a real model."""
+        api_key = os.getenv("GOOGLE_API_KEY")
+        if not api_key:
             pytest.skip("API key not available")
         
-        # Run integration test
-        pass
+        model = load_gemini("gemini-2.5-flash", api_key=api_key)
+        assert model is not None
+        assert model.model_name == "gemini-2.5-flash"
+
+
+class TestConfiguration:
+    """Test configuration validation."""
+    
+    def test_valid_config(self):
+        """Test creating valid configuration."""
+        config = ModelConfig(model_name="gemini-2.5-pro")
+        assert config.model_name == "gemini-2.5-pro"
 ```
 
 ## Continuous Integration
 
-Tests are designed to run in CI environments:
-- All unit tests should pass without external dependencies
-- Integration tests can be skipped if API keys not available
-- Fast execution (unit tests < 10 seconds total)
-- Clear failure messages and debugging information 
+The test suite is designed to work in CI environments:
+
+- Environment variables for API keys
+- Conditional skipping of integration tests
+- Fast unit tests for quick feedback
+- Comprehensive coverage reporting
+
+## Troubleshooting
+
+### Common Issues
+
+1. **"No API key available"**: Set `GOOGLE_API_KEY` or `GEMINI_API_KEY`
+2. **Import errors**: Run tests from project root directory
+3. **Async test issues**: Ensure `pytest-asyncio` is installed
+
+### Running Specific Test Types
+
+```bash
+# Only unit tests (no API calls)
+pytest -m "not integration"
+
+# Only integration tests
+pytest -m integration
+
+# Skip slow tests
+pytest -m "not slow"
+``` 

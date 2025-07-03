@@ -1,5 +1,5 @@
 """
-Configuration utilities for LLM-AgentTypeEval.
+Configuration utilities for AgenticEvals.
 """
 
 import os
@@ -7,43 +7,45 @@ import json
 import yaml
 from typing import Dict, Any, Optional
 from pathlib import Path
-from dataclasses import dataclass, asdict
+from dataclasses import dataclass, asdict, field
 from .logging import get_logger
+
+try:
+    from dotenv import load_dotenv
+    DOTENV_AVAILABLE = True
+except ImportError:
+    DOTENV_AVAILABLE = False
 
 logger = get_logger(__name__)
 
 
 @dataclass
 class Config:
-    """Main configuration class for LLM-AgentTypeEval."""
+    """Main configuration class for AgenticEvals."""
     
-    # Model settings
-    default_model: str = "gemini-1.5-pro"
-    api_keys: Dict[str, str] = None
+    # API Keys
+    api_keys: Dict[str, str] = field(default_factory=dict)
     
-    # Benchmark settings
-    default_benchmark_config: Dict[str, Any] = None
-    results_dir: str = "results"
-    cache_dir: str = ".cache"
+    # Model defaults
+    default_model: str = "gemini-2.5-pro"
+    default_temperature: float = 0.7
+    default_max_tokens: Optional[int] = None
     
-    # Logging settings
+    # Benchmark defaults
+    default_timeout_seconds: float = 30.0
+    default_max_retries: int = 3
+    default_collect_detailed_metrics: bool = True
+    default_save_responses: bool = True
+    
+    # Logging
     log_level: str = "INFO"
-    log_file: Optional[str] = None
+    log_format: str = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
     
-    # Evaluation settings
-    timeout_seconds: float = 60.0
-    max_retries: int = 3
-    parallel_tasks: int = 1
+    # Results
+    results_dir: str = "./results"
     
-    def __post_init__(self):
-        if self.api_keys is None:
-            self.api_keys = {}
-        if self.default_benchmark_config is None:
-            self.default_benchmark_config = {
-                "collect_detailed_metrics": True,
-                "save_responses": True,
-                "random_seed": 42
-            }
+    # Additional custom parameters
+    additional_params: Dict[str, Any] = field(default_factory=dict)
 
 
 class ConfigManager:

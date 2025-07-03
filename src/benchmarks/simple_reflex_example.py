@@ -1,13 +1,15 @@
 """
-Example Simple Reflex Agent benchmark for LLM-AgentTypeEval.
+Example Simple Reflex Agent benchmark for AgenticEvals.
 
-This benchmark tests immediate rule-based responses using traffic light scenarios.
+This benchmark tests a model's ability to follow simple stimulus-response patterns,
+specifically for traffic light scenarios where the model should respond with
+appropriate actions based on the current signal.
 """
 
 import time
 import re
 from typing import List, Dict, Any
-from ..benchmark.base import BaseBenchmark, Task, TaskResult, AgentType
+from ..benchmark.base import BaseBenchmark, Task, TaskResult, BenchmarkConfig, AgentType
 from ..benchmark.registry import register_benchmark
 from ..models.base import BaseModel, ModelResponse
 from ..utils.logging import get_logger

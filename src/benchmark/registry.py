@@ -1,5 +1,5 @@
 """
-Benchmark registry for LLM-AgentTypeEval.
+Benchmark registry for AgenticEvals.
 """
 
 from typing import Dict, Type, List, Optional, Set

@@ -1,14 +1,16 @@
 """
-Model loader for LLM-AgentTypeEval.
+Model loader for AgenticEvals.
 """
 
 import os
-from typing import Dict, Type, Any
+from typing import Dict, Optional, Type, Any
+from pathlib import Path
 from dotenv import load_dotenv
 
 from .base import BaseModel, ModelConfig
 from .gemini import GeminiModel
 from ..utils.logging import get_logger
+from ..utils.config import get_config_manager
 
 # Load environment variables
 load_dotenv()
@@ -22,9 +24,9 @@ class ModelLoader:
     # Registry of available model classes
     _model_registry: Dict[str, Type[BaseModel]] = {
         "gemini": GeminiModel,
-        "gemini-pro": GeminiModel,
-        "gemini-1.5-pro": GeminiModel,
-        "gemini-1.5-flash": GeminiModel,
+            "gemini-pro": GeminiModel,
+    "gemini-2.5-pro": GeminiModel,
+    "gemini-2.5-flash": GeminiModel,
     }
     
     @classmethod
@@ -97,7 +99,7 @@ class ModelLoader:
 
 
 # Convenience functions
-def load_gemini(model_name: str = "gemini-1.5-pro", **kwargs) -> GeminiModel:
+def load_gemini(model_name: str = "gemini-2.5-pro", **kwargs) -> GeminiModel:
     """Convenience function to load a Gemini model."""
     return ModelLoader.load_model(model_name, **kwargs)
 

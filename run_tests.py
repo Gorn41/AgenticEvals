@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Test runner script for LLM-AgentTypeEval.
+Test runner script for AgenticEvals.
 
 This script provides convenient ways to run different categories of tests.
 """
@@ -24,7 +24,7 @@ def run_command(cmd, description=""):
 
 
 def check_dependencies():
-    """Check if required test dependencies are installed."""
+    """Check if test dependencies are installed."""
     try:
         import pytest
         import pytest_asyncio
@@ -33,8 +33,26 @@ def check_dependencies():
         return False
 
 
+def install_dependencies():
+    """Install test dependencies."""
+    dependencies = [
+        "pytest", "pytest-asyncio", "pytest-cov"
+    ]
+    
+    print("Installing test dependencies...")
+    try:
+        subprocess.run([
+            sys.executable, "-m", "pip", "install"
+        ] + dependencies, check=True)
+        print("Dependencies installed successfully!")
+        return True
+    except subprocess.CalledProcessError:
+        print("Failed to install dependencies!")
+        return False
+
+
 def main():
-    parser = argparse.ArgumentParser(description="Run LLM-AgentTypeEval tests")
+    parser = argparse.ArgumentParser(description="Run AgenticEvals tests")
     parser.add_argument(
         "--unit", "-u", 
         action="store_true", 
@@ -86,16 +104,7 @@ def main():
     
     # Install dependencies if requested
     if args.install_deps:
-        print("Installing test dependencies...")
-        result = run_command([
-            sys.executable, "-m", "pip", "install", 
-            "pytest", "pytest-asyncio", "pytest-cov"
-        ], "Installing test dependencies")
-        if result != 0:
-            print("Failed to install dependencies")
-            return result
-        print("Dependencies installed successfully!")
-        return 0
+        return 0 if install_dependencies() else 1
     
     # Check dependencies
     if not check_dependencies():

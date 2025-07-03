@@ -1,12 +1,17 @@
 """
-Gemini model implementation for LLM-AgentTypeEval.
+Gemini model implementation for AgenticEvals.
 """
 
 import time
 import asyncio
 from typing import List, Dict, Any, Optional
-import google.generativeai as genai
-from google.generativeai.types import HarmCategory, HarmBlockThreshold
+
+try:
+    import google.generativeai as genai
+    from google.generativeai.types import HarmCategory, HarmBlockThreshold
+    GENAI_AVAILABLE = True
+except ImportError:
+    GENAI_AVAILABLE = False
 
 from .base import BaseModel, ModelConfig, ModelResponse
 from ..utils.logging import get_logger

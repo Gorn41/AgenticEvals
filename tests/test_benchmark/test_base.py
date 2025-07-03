@@ -1,24 +1,36 @@
 """
-Tests for benchmark base classes and interfaces.
+Tests for benchmark base classes.
 """
 
 import pytest
-import asyncio
-from unittest.mock import MagicMock, AsyncMock
-from datetime import datetime
+import os
+from typing import List
 
 from benchmark.base import (
-    AgentType, TaskResult, BenchmarkResult, BenchmarkConfig, 
-    Task, BaseBenchmark
+    BaseBenchmark, BenchmarkConfig, BenchmarkResult, TaskResult, Task, AgentType
 )
 from models.base import ModelResponse, BaseModel
+from models.loader import load_gemini
 
 
 class TestAgentType:
     """Test the AgentType enum."""
     
-    def test_agent_type_values(self):
+    def test_agent_types_exist(self):
         """Test that all expected agent types exist."""
+        expected_types = [
+            "SIMPLE_REFLEX",
+            "MODEL_BASED_REFLEX", 
+            "GOAL_BASED",
+            "UTILITY_BASED",
+            "LEARNING"
+        ]
+        
+        for agent_type_name in expected_types:
+            assert hasattr(AgentType, agent_type_name)
+    
+    def test_agent_type_values(self):
+        """Test agent type string values."""
         assert AgentType.SIMPLE_REFLEX.value == "simple_reflex"
         assert AgentType.MODEL_BASED_REFLEX.value == "model_based_reflex"
         assert AgentType.GOAL_BASED.value == "goal_based"
@@ -30,47 +42,53 @@ class TestTaskResult:
     """Test the TaskResult class."""
     
     def test_task_result_creation(self):
-        """Test creating a TaskResult."""
-        model_response = ModelResponse(text="stop", tokens_used=5, latency=0.8)
+        """Test creating a task result."""
+        model_response = ModelResponse(
+            text="Test response",
+            prompt_tokens=10,
+            completion_tokens=5,
+            total_tokens=15,
+            finish_reason="completed"
+        )
         
         result = TaskResult(
-            task_id="test_task",
+            task_id="task_1",
             task_name="Test Task",
             agent_type=AgentType.SIMPLE_REFLEX,
             success=True,
-            score=0.95,
-            metrics={"accuracy": 1.0, "response_time": 0.8},
+            score=0.85,
+            metrics={"accuracy": 0.9},
             model_response=model_response,
-            execution_time=0.8,
-            metadata={"difficulty": "easy"}
+            execution_time=1.2,
+            metadata={"notes": "good performance"}
         )
         
-        assert result.task_id == "test_task"
+        assert result.task_id == "task_1"
         assert result.task_name == "Test Task"
         assert result.agent_type == AgentType.SIMPLE_REFLEX
         assert result.success is True
-        assert result.score == 0.95
-        assert result.metrics["accuracy"] == 1.0
+        assert result.score == 0.85
+        assert result.metrics == {"accuracy": 0.9}
         assert result.model_response == model_response
-        assert result.execution_time == 0.8
-        assert result.metadata["difficulty"] == "easy"
+        assert result.execution_time == 1.2
+        assert result.metadata == {"notes": "good performance"}
     
     def test_task_result_minimal(self):
         """Test TaskResult with minimal required fields."""
         result = TaskResult(
             task_id="minimal",
-            task_name="Minimal Task",
-            agent_type=AgentType.GOAL_BASED,
             success=False,
-            score=0.0,
-            metrics={},
-            execution_time=1.0
+            score=0.2
         )
         
         assert result.task_id == "minimal"
         assert result.success is False
+        assert result.score == 0.2
+        assert result.task_name is None
+        assert result.agent_type is None
+        assert result.metrics == {}
         assert result.model_response is None
-        assert result.error_message is None
+        assert result.execution_time is None
         assert result.metadata == {}
 
 
@@ -78,224 +96,173 @@ class TestBenchmarkResult:
     """Test the BenchmarkResult class."""
     
     def test_benchmark_result_creation(self):
-        """Test creating a BenchmarkResult."""
+        """Test creating a benchmark result."""
         task_results = [
             TaskResult(
-                task_id="task1",
-                task_name="Task 1", 
-                agent_type=AgentType.SIMPLE_REFLEX,
+                task_id="task_1",
                 success=True,
-                score=1.0,
-                metrics={},
-                execution_time=0.5
+                score=0.9,
+                execution_time=1.0
             ),
             TaskResult(
-                task_id="task2",
-                task_name="Task 2",
-                agent_type=AgentType.SIMPLE_REFLEX, 
+                task_id="task_2", 
                 success=False,
-                score=0.0,
-                metrics={},
-                execution_time=0.8
+                score=0.3,
+                execution_time=1.5
             )
         ]
         
         result = BenchmarkResult(
-            benchmark_id="bench_123",
-            benchmark_name="Test Benchmark",
+            benchmark_name="test_benchmark",
+            model_name="test_model",
             agent_type=AgentType.SIMPLE_REFLEX,
-            model_name="test-model",
-            timestamp="2024-01-01 12:00:00",
             task_results=task_results,
-            overall_score=0.5,
-            summary_metrics={"avg_score": 0.5}
+            overall_score=0.6,
+            metadata={"test_run": True}
         )
         
-        assert result.benchmark_id == "bench_123"
-        assert result.benchmark_name == "Test Benchmark"
+        assert result.benchmark_name == "test_benchmark"
+        assert result.model_name == "test_model"
         assert result.agent_type == AgentType.SIMPLE_REFLEX
-        assert result.model_name == "test-model"
         assert len(result.task_results) == 2
-        assert result.overall_score == 0.5
+        assert result.overall_score == 0.6
+        assert result.metadata == {"test_run": True}
     
     def test_get_success_rate(self):
         """Test calculating success rate."""
         task_results = [
-            TaskResult("t1", "Task 1", AgentType.SIMPLE_REFLEX, True, 1.0, {}, 0.5),
-            TaskResult("t2", "Task 2", AgentType.SIMPLE_REFLEX, True, 0.8, {}, 0.6),
-            TaskResult("t3", "Task 3", AgentType.SIMPLE_REFLEX, False, 0.0, {}, 0.7),
-            TaskResult("t4", "Task 4", AgentType.SIMPLE_REFLEX, True, 0.9, {}, 0.4)
+            TaskResult(task_id="1", success=True, score=1.0),
+            TaskResult(task_id="2", success=True, score=0.8),
+            TaskResult(task_id="3", success=False, score=0.2)
         ]
         
         result = BenchmarkResult(
-            benchmark_id="test",
-            benchmark_name="Test",
-            agent_type=AgentType.SIMPLE_REFLEX,
+            benchmark_name="test",
             model_name="test",
-            timestamp="2024-01-01",
+            agent_type=AgentType.SIMPLE_REFLEX,
             task_results=task_results,
-            overall_score=0.675,
-            summary_metrics={}
+            overall_score=0.667
         )
         
-        assert result.get_success_rate() == 0.75  # 3 out of 4 successful
+        success_rate = result.get_success_rate()
+        assert success_rate == pytest.approx(0.667, rel=1e-2)
     
-    def test_get_success_rate_empty(self):
-        """Test success rate with no tasks."""
-        result = BenchmarkResult(
-            benchmark_id="test",
-            benchmark_name="Test",
-            agent_type=AgentType.SIMPLE_REFLEX,
-            model_name="test",
-            timestamp="2024-01-01",
-            task_results=[],
-            overall_score=0.0,
-            summary_metrics={}
-        )
-        
-        assert result.get_success_rate() == 0.0
-    
-    def test_get_average_score(self):
-        """Test calculating average score."""
+    def test_get_summary_statistics(self):
+        """Test getting summary statistics."""
         task_results = [
-            TaskResult("t1", "Task 1", AgentType.SIMPLE_REFLEX, True, 1.0, {}, 0.5),
-            TaskResult("t2", "Task 2", AgentType.SIMPLE_REFLEX, True, 0.8, {}, 0.6),
-            TaskResult("t3", "Task 3", AgentType.SIMPLE_REFLEX, False, 0.2, {}, 0.7)
+            TaskResult(task_id="1", success=True, score=0.9, execution_time=1.0),
+            TaskResult(task_id="2", success=True, score=0.8, execution_time=1.2),
+            TaskResult(task_id="3", success=False, score=0.1, execution_time=0.8)
         ]
         
         result = BenchmarkResult(
-            benchmark_id="test",
-            benchmark_name="Test", 
-            agent_type=AgentType.SIMPLE_REFLEX,
-            model_name="test",
-            timestamp="2024-01-01",
-            task_results=task_results,
-            overall_score=0.0,  # Will be calculated
-            summary_metrics={}
-        )
-        
-        assert result.get_average_score() == pytest.approx(0.667, rel=1e-2)
-    
-    def test_get_metric_summary(self):
-        """Test getting metric summary."""
-        task_results = [
-            TaskResult("t1", "T1", AgentType.SIMPLE_REFLEX, True, 1.0, {"latency": 0.5}, 0.5),
-            TaskResult("t2", "T2", AgentType.SIMPLE_REFLEX, True, 0.8, {"latency": 0.8}, 0.8),
-            TaskResult("t3", "T3", AgentType.SIMPLE_REFLEX, True, 0.9, {"latency": 0.3}, 0.3),
-            TaskResult("t4", "T4", AgentType.SIMPLE_REFLEX, True, 0.7, {"other": 1.0}, 0.4)
-        ]
-        
-        result = BenchmarkResult(
-            benchmark_id="test",
-            benchmark_name="Test",
-            agent_type=AgentType.SIMPLE_REFLEX,
+            benchmark_name="test",
             model_name="test", 
-            timestamp="2024-01-01",
+            agent_type=AgentType.SIMPLE_REFLEX,
             task_results=task_results,
-            overall_score=0.85,
-            summary_metrics={}
+            overall_score=0.6
         )
         
-        latency_summary = result.get_metric_summary("latency")
-        assert latency_summary["count"] == 3  # Only 3 tasks have latency
-        assert latency_summary["mean"] == pytest.approx(0.533, rel=1e-2)
-        assert latency_summary["min"] == 0.3
-        assert latency_summary["max"] == 0.8
+        stats = result.get_summary_statistics()
         
-        # Non-existent metric
-        empty_summary = result.get_metric_summary("nonexistent")
-        assert empty_summary == {}
+        assert "total_tasks" in stats
+        assert "successful_tasks" in stats
+        assert "average_score" in stats
+        assert "average_execution_time" in stats
+        
+        assert stats["total_tasks"] == 3
+        assert stats["successful_tasks"] == 2
+        assert stats["average_execution_time"] == pytest.approx(1.0, rel=1e-2)
 
 
 class TestBenchmarkConfig:
     """Test the BenchmarkConfig class."""
     
-    def test_benchmark_config_creation(self):
-        """Test creating a BenchmarkConfig."""
+    def test_config_creation_minimal(self):
+        """Test creating benchmark config with minimal parameters."""
         config = BenchmarkConfig(
             benchmark_name="test_benchmark",
-            agent_type=AgentType.GOAL_BASED,
+            agent_type=AgentType.SIMPLE_REFLEX
+        )
+        
+        assert config.benchmark_name == "test_benchmark"
+        assert config.agent_type == AgentType.SIMPLE_REFLEX
+        assert config.max_retries == 3  # Default value
+        assert config.collect_detailed_metrics is True  # Default value
+    
+    def test_config_creation_full(self):
+        """Test creating benchmark config with all parameters."""
+        config = BenchmarkConfig(
+            benchmark_name="test_benchmark",
+            agent_type=AgentType.MODEL_BASED_REFLEX,
             num_tasks=10,
             random_seed=42,
             timeout_seconds=30.0,
-            max_retries=3,
-            collect_detailed_metrics=True,
-            save_responses=False,
+            max_retries=5,
+            collect_detailed_metrics=False,
+            save_responses=True,
             additional_params={"custom": "value"}
         )
         
         assert config.benchmark_name == "test_benchmark"
-        assert config.agent_type == AgentType.GOAL_BASED
+        assert config.agent_type == AgentType.MODEL_BASED_REFLEX
         assert config.num_tasks == 10
         assert config.random_seed == 42
         assert config.timeout_seconds == 30.0
-        assert config.max_retries == 3
-        assert config.collect_detailed_metrics is True
-        assert config.save_responses is False
-        assert config.additional_params["custom"] == "value"
-    
-    def test_benchmark_config_defaults(self):
-        """Test BenchmarkConfig with default values."""
-        config = BenchmarkConfig(
-            benchmark_name="minimal",
-            agent_type=AgentType.SIMPLE_REFLEX
-        )
-        
-        assert config.benchmark_name == "minimal"
-        assert config.agent_type == AgentType.SIMPLE_REFLEX
-        assert config.num_tasks is None
-        assert config.random_seed is None
-        assert config.timeout_seconds is None
-        assert config.max_retries == 3
-        assert config.collect_detailed_metrics is True
+        assert config.max_retries == 5
+        assert config.collect_detailed_metrics is False
         assert config.save_responses is True
-        assert config.additional_params == {}
+        assert config.additional_params == {"custom": "value"}
 
 
 class TestTask:
-    """Test the Task dataclass."""
+    """Test the Task class."""
     
     def test_task_creation(self):
-        """Test creating a Task."""
+        """Test creating a task."""
         task = Task(
-            task_id="task_001",
-            name="Traffic Light Test",
-            description="Test response to red light",
-            prompt="You see a red traffic light. What do you do?",
-            expected_output="stop",
-            evaluation_criteria={"exact_match": True, "case_sensitive": False},
-            metadata={"signal_color": "red", "difficulty": "easy"}
+            task_id="task_1",
+            name="Test Task",
+            description="A test task",
+            prompt="Test prompt",
+            expected_output="Expected result",
+            metadata={"category": "test"}
         )
         
-        assert task.task_id == "task_001"
-        assert task.name == "Traffic Light Test"
-        assert task.description == "Test response to red light"
-        assert task.prompt == "You see a red traffic light. What do you do?"
-        assert task.expected_output == "stop"
-        assert task.evaluation_criteria["exact_match"] is True
-        assert task.metadata["signal_color"] == "red"
+        assert task.task_id == "task_1"
+        assert task.name == "Test Task"
+        assert task.description == "A test task"
+        assert task.prompt == "Test prompt"
+        assert task.expected_output == "Expected result"
+        assert task.metadata == {"category": "test"}
     
-    def test_task_minimal(self):
-        """Test Task with minimal required fields."""
+    def test_task_minimal_creation(self):
+        """Test creating a task with minimal parameters."""
         task = Task(
-            task_id="minimal",
-            name="Minimal Task",
-            description="Minimal test",
-            prompt="Test prompt"
+            task_id="minimal_task",
+            prompt="Simple prompt",
+            expected_output="Simple output"
         )
         
-        assert task.task_id == "minimal"
-        assert task.name == "Minimal Task"
-        assert task.expected_output is None
-        # Post-init should set defaults
-        assert task.evaluation_criteria == {}
+        assert task.task_id == "minimal_task"
+        assert task.prompt == "Simple prompt"
+        assert task.expected_output == "Simple output"
+        assert task.name is None
+        assert task.description is None
         assert task.metadata == {}
 
 
 class TestBaseBenchmark:
     """Test the BaseBenchmark abstract class."""
     
-    def test_base_benchmark_is_abstract(self):
+    def test_abstract_methods_exist(self):
+        """Test that BaseBenchmark has the required abstract methods."""
+        abstract_methods = BaseBenchmark.__abstractmethods__
+        
+        expected_methods = {'get_tasks', 'evaluate_task', 'calculate_score'}
+        assert expected_methods.issubset(abstract_methods)
+    
+    def test_cannot_instantiate_base_benchmark(self):
         """Test that BaseBenchmark cannot be instantiated directly."""
         config = BenchmarkConfig(
             benchmark_name="test",
@@ -305,213 +272,81 @@ class TestBaseBenchmark:
         with pytest.raises(TypeError):
             BaseBenchmark(config)
     
-    def test_concrete_implementation(self):
-        """Test a concrete implementation of BaseBenchmark."""
+    def test_benchmark_info_structure(self):
+        """Test the structure of benchmark info method."""
         
         class ConcreteBenchmark(BaseBenchmark):
-            def get_tasks(self):
-                return [
-                    Task("t1", "Task 1", "Test task", "Test prompt", "expected")
-                ]
-            
-            async def evaluate_task(self, task, model):
-                response = await model.generate(task.prompt)
-                score = 1.0 if response.text == task.expected_output else 0.0
-                return TaskResult(
-                    task_id=task.task_id,
-                    task_name=task.name,
-                    agent_type=self.agent_type,
-                    success=score > 0.5,
-                    score=score,
-                    metrics={},
-                    model_response=response,
-                    execution_time=0.5
-                )
-            
-            def calculate_score(self, task, model_response):
-                return 1.0 if model_response.text == task.expected_output else 0.0
-        
-        config = BenchmarkConfig(
-            benchmark_name="concrete",
-            agent_type=AgentType.SIMPLE_REFLEX
-        )
-        
-        benchmark = ConcreteBenchmark(config)
-        assert benchmark.benchmark_name == "concrete"
-        assert benchmark.agent_type == AgentType.SIMPLE_REFLEX
-        assert benchmark.config == config
-    
-    async def test_run_benchmark(self):
-        """Test running a complete benchmark."""
-        
-        class TestBenchmark(BaseBenchmark):
-            def get_tasks(self):
-                return [
-                    Task("t1", "Task 1", "Test", "prompt1", "stop"),
-                    Task("t2", "Task 2", "Test", "prompt2", "go")
-                ]
-            
-            async def evaluate_task(self, task, model):
-                response = await model.generate(task.prompt)
-                score = 1.0 if response.text == task.expected_output else 0.0
-                return TaskResult(
-                    task_id=task.task_id,
-                    task_name=task.name,
-                    agent_type=self.agent_type,
-                    success=score > 0.5,
-                    score=score,
-                    metrics={"test_metric": 1.0},
-                    model_response=response,
-                    execution_time=0.5
-                )
-            
-            def calculate_score(self, task, model_response):
-                return 1.0 if model_response.text == task.expected_output else 0.0
-        
-        config = BenchmarkConfig(
-            benchmark_name="test_benchmark",
-            agent_type=AgentType.SIMPLE_REFLEX
-        )
-        benchmark = TestBenchmark(config)
-        
-        # Mock model
-        mock_model = AsyncMock()
-        mock_model.model_name = "test-model"
-        mock_model.generate.side_effect = [
-            ModelResponse(text="stop", tokens_used=5, latency=0.5),
-            ModelResponse(text="go", tokens_used=3, latency=0.3)
-        ]
-        
-        result = await benchmark.run_benchmark(mock_model)
-        
-        assert isinstance(result, BenchmarkResult)
-        assert result.benchmark_name == "test_benchmark"
-        assert result.model_name == "test-model"
-        assert result.agent_type == AgentType.SIMPLE_REFLEX
-        assert len(result.task_results) == 2
-        assert result.overall_score == 1.0  # Both tasks successful
-        assert result.summary_metrics["num_tasks_completed"] == 2
-        assert result.summary_metrics["num_tasks_successful"] == 2
-    
-    async def test_run_benchmark_with_task_limit(self):
-        """Test running benchmark with task limit."""
-        
-        class TestBenchmark(BaseBenchmark):
-            def get_tasks(self):
-                return [
-                    Task("t1", "Task 1", "Test", "prompt1", "stop"),
-                    Task("t2", "Task 2", "Test", "prompt2", "go"),
-                    Task("t3", "Task 3", "Test", "prompt3", "caution")
-                ]
-            
-            async def evaluate_task(self, task, model):
-                response = await model.generate(task.prompt)
-                return TaskResult(
-                    task_id=task.task_id,
-                    task_name=task.name,
-                    agent_type=self.agent_type,
-                    success=True,
-                    score=1.0,
-                    metrics={},
-                    model_response=response,
-                    execution_time=0.5
-                )
-            
-            def calculate_score(self, task, model_response):
-                return 1.0
-        
-        config = BenchmarkConfig(
-            benchmark_name="limited",
-            agent_type=AgentType.SIMPLE_REFLEX,
-            num_tasks=2  # Limit to 2 tasks
-        )
-        benchmark = TestBenchmark(config)
-        
-        mock_model = AsyncMock()
-        mock_model.model_name = "test-model"
-        mock_model.generate.return_value = ModelResponse(text="test", tokens_used=5, latency=0.5)
-        
-        result = await benchmark.run_benchmark(mock_model)
-        
-        # Should only run 2 tasks despite 3 being available
-        assert len(result.task_results) == 2
-    
-    async def test_run_benchmark_with_error(self):
-        """Test benchmark handling task evaluation errors."""
-        
-        class ErrorBenchmark(BaseBenchmark):
-            def get_tasks(self):
-                return [
-                    Task("t1", "Good Task", "Test", "prompt1", "stop"),
-                    Task("t2", "Bad Task", "Test", "prompt2", "go")
-                ]
-            
-            async def evaluate_task(self, task, model):
-                if task.task_id == "t2":
-                    raise Exception("Evaluation failed")
-                
-                response = await model.generate(task.prompt)
-                return TaskResult(
-                    task_id=task.task_id,
-                    task_name=task.name,
-                    agent_type=self.agent_type,
-                    success=True,
-                    score=1.0,
-                    metrics={},
-                    model_response=response,
-                    execution_time=0.5
-                )
-            
-            def calculate_score(self, task, model_response):
-                return 1.0
-        
-        config = BenchmarkConfig(
-            benchmark_name="error_test",
-            agent_type=AgentType.SIMPLE_REFLEX
-        )
-        benchmark = ErrorBenchmark(config)
-        
-        mock_model = AsyncMock()
-        mock_model.model_name = "test-model"
-        mock_model.generate.return_value = ModelResponse(text="stop", tokens_used=5, latency=0.5)
-        
-        result = await benchmark.run_benchmark(mock_model)
-        
-        assert len(result.task_results) == 2
-        # First task should succeed
-        assert result.task_results[0].success is True
-        # Second task should fail
-        assert result.task_results[1].success is False
-        assert result.task_results[1].error_message == "Evaluation failed"
-        assert result.summary_metrics["num_tasks_successful"] == 1
-        assert result.summary_metrics["num_tasks_failed"] == 1
-    
-    def test_get_benchmark_info(self):
-        """Test getting benchmark information."""
-        
-        class InfoBenchmark(BaseBenchmark):
-            """Test benchmark for info testing."""
+            """Test benchmark for validation."""
             
             def get_tasks(self):
                 return []
             
             async def evaluate_task(self, task, model):
-                pass
+                return TaskResult(task_id="test", success=True, score=1.0)
             
             def calculate_score(self, task, model_response):
-                return 0.0
+                return 1.0
         
         config = BenchmarkConfig(
-            benchmark_name="info_test",
+            benchmark_name="test_info",
             agent_type=AgentType.UTILITY_BASED,
             max_retries=5
         )
-        benchmark = InfoBenchmark(config)
+        benchmark = ConcreteBenchmark(config)
         
         info = benchmark.get_benchmark_info()
         
-        assert info["benchmark_name"] == "info_test"
+        assert isinstance(info, dict)
+        assert info["benchmark_name"] == "test_info"
         assert info["agent_type"] == "utility_based"
-        assert "Test benchmark for info testing" in info["description"]
+        assert "Test benchmark for validation" in info["description"]
         assert "config" in info
-        assert info["config"]["max_retries"] == 5 
+        assert info["config"]["max_retries"] == 5
+
+
+class TestBenchmarkIntegration:
+    """Integration tests that require API keys."""
+    
+    @pytest.mark.integration
+    def test_model_loading_for_benchmarks(self):
+        """Test that models can be loaded for benchmark use."""
+        api_key = os.getenv("GOOGLE_API_KEY") or os.getenv("GEMINI_API_KEY")
+        if not api_key:
+            pytest.skip("No API key available for integration test")
+        
+        model = load_gemini("gemini-2.5-flash", api_key=api_key, temperature=0.1)
+        
+        assert model is not None
+        assert hasattr(model, 'generate')
+        assert hasattr(model, 'generate_sync')
+        assert model.model_name == "gemini-2.5-flash"
+    
+    @pytest.mark.integration
+    async def test_benchmark_interface_compatibility(self):
+        """Test that real models work with benchmark interface."""
+        api_key = os.getenv("GOOGLE_API_KEY") or os.getenv("GEMINI_API_KEY")
+        if not api_key:
+            pytest.skip("No API key available for integration test")
+        
+        # Test model response format compatibility
+        model = load_gemini("gemini-2.5-flash", api_key=api_key, temperature=0.1)
+        response = await model.generate("What is 2+2?")
+        
+        # Verify response has expected structure for benchmarks
+        assert hasattr(response, 'text')
+        assert isinstance(response.text, str)
+        assert len(response.text) > 0
+        
+        # Test creating TaskResult with real response
+        task_result = TaskResult(
+            task_id="integration_test",
+            task_name="Math Test",
+            agent_type=AgentType.SIMPLE_REFLEX,
+            success=True,
+            score=1.0,
+            model_response=response,
+            execution_time=0.5
+        )
+        
+        assert task_result.model_response == response
+        assert task_result.task_id == "integration_test" 

@@ -1,62 +1,61 @@
 """
-Tests for base model classes and interfaces.
+Tests for model base classes and interfaces.
 """
 
 import pytest
-from unittest.mock import MagicMock
-from typing import List
 
-from models.base import ModelResponse, ModelConfig, BaseModel
+from models.base import BaseModel, ModelConfig, ModelResponse
 
 
 class TestModelResponse:
     """Test the ModelResponse class."""
     
     def test_model_response_creation(self):
-        """Test creating a ModelResponse."""
+        """Test creating a model response."""
         response = ModelResponse(
-            text="Hello world",
-            tokens_used=10,
-            latency=1.5,
+            text="Test response",
+            prompt_tokens=10,
+            completion_tokens=5,
+            total_tokens=15,
+            finish_reason="completed",
             metadata={"model": "test-model"}
         )
         
-        assert response.text == "Hello world"
-        assert response.tokens_used == 10
-        assert response.latency == 1.5
+        assert response.text == "Test response"
+        assert response.prompt_tokens == 10
+        assert response.completion_tokens == 5
+        assert response.total_tokens == 15
+        assert response.finish_reason == "completed"
         assert response.metadata == {"model": "test-model"}
     
     def test_model_response_minimal(self):
-        """Test creating ModelResponse with only required fields."""
-        response = ModelResponse(text="Hello")
+        """Test creating minimal model response."""
+        response = ModelResponse(text="Simple response")
         
-        assert response.text == "Hello"
-        assert response.tokens_used is None
-        assert response.latency is None
+        assert response.text == "Simple response"
+        assert response.prompt_tokens is None
+        assert response.completion_tokens is None
+        assert response.total_tokens is None
+        assert response.finish_reason is None
         assert response.metadata == {}
     
-    def test_model_response_serialization(self):
-        """Test ModelResponse can be serialized to dict."""
+    def test_model_response_token_calculation(self):
+        """Test automatic token calculation if total not provided."""
         response = ModelResponse(
-            text="Hello",
-            tokens_used=5,
-            latency=0.8,
-            metadata={"test": "value"}
+            text="Test",
+            prompt_tokens=10,
+            completion_tokens=5
         )
         
-        data = response.model_dump()
-        assert isinstance(data, dict)
-        assert data["text"] == "Hello"
-        assert data["tokens_used"] == 5
-        assert data["latency"] == 0.8
-        assert data["metadata"] == {"test": "value"}
+        # Should calculate total automatically
+        assert response.total_tokens == 15
 
 
 class TestModelConfig:
     """Test the ModelConfig class."""
     
     def test_model_config_creation(self):
-        """Test creating a ModelConfig."""
+        """Test creating a model configuration."""
         config = ModelConfig(
             model_name="test-model",
             api_key="test-key",
@@ -64,7 +63,6 @@ class TestModelConfig:
             max_tokens=1000,
             top_p=0.9,
             top_k=40,
-            stop_sequences=["END", "STOP"],
             additional_params={"custom": "value"}
         )
         
@@ -74,139 +72,123 @@ class TestModelConfig:
         assert config.max_tokens == 1000
         assert config.top_p == 0.9
         assert config.top_k == 40
-        assert config.stop_sequences == ["END", "STOP"]
         assert config.additional_params == {"custom": "value"}
     
     def test_model_config_minimal(self):
-        """Test creating ModelConfig with only required fields."""
-        config = ModelConfig(model_name="test-model")
+        """Test creating minimal model configuration."""
+        config = ModelConfig(model_name="minimal-model")
         
-        assert config.model_name == "test-model"
+        assert config.model_name == "minimal-model"
         assert config.api_key is None
-        assert config.temperature == 0.7  # default
+        assert config.temperature == 0.7  # Default value
         assert config.max_tokens is None
-        assert config.top_p is None
-        assert config.top_k is None
-        assert config.stop_sequences is None
         assert config.additional_params == {}
     
-    def test_model_config_serialization(self):
-        """Test ModelConfig can be serialized to dict."""
-        config = ModelConfig(
-            model_name="test-model",
-            temperature=0.5,
-            max_tokens=500
-        )
+    def test_model_config_validation(self):
+        """Test model configuration validation."""
+        # Test invalid temperature
+        with pytest.raises(ValueError):
+            ModelConfig(model_name="test", temperature=-1.0)
         
-        data = config.model_dump()
-        assert isinstance(data, dict)
-        assert data["model_name"] == "test-model"
-        assert data["temperature"] == 0.5
-        assert data["max_tokens"] == 500
+        with pytest.raises(ValueError):
+            ModelConfig(model_name="test", temperature=2.0)
+        
+        # Test invalid top_p
+        with pytest.raises(ValueError):
+            ModelConfig(model_name="test", top_p=-0.1)
+        
+        with pytest.raises(ValueError):
+            ModelConfig(model_name="test", top_p=1.1)
+        
+        # Test invalid max_tokens
+        with pytest.raises(ValueError):
+            ModelConfig(model_name="test", max_tokens=0)
+        
+        with pytest.raises(ValueError):
+            ModelConfig(model_name="test", max_tokens=-100)
 
 
 class TestBaseModel:
     """Test the BaseModel abstract class."""
     
-    def test_base_model_is_abstract(self):
+    def test_abstract_methods_exist(self):
+        """Test that BaseModel has the required abstract methods."""
+        abstract_methods = BaseModel.__abstractmethods__
+        
+        expected_methods = {'generate', 'generate_sync'}
+        assert expected_methods.issubset(abstract_methods)
+    
+    def test_cannot_instantiate_base_model(self):
         """Test that BaseModel cannot be instantiated directly."""
         config = ModelConfig(model_name="test")
         
         with pytest.raises(TypeError):
             BaseModel(config)
-    
-    def test_concrete_implementation(self):
-        """Test a concrete implementation of BaseModel."""
-        
-        class ConcreteModel(BaseModel):
-            async def generate(self, prompt: str, **kwargs) -> ModelResponse:
-                return ModelResponse(text=f"Response to: {prompt}")
-            
-            def generate_sync(self, prompt: str, **kwargs) -> ModelResponse:
-                return ModelResponse(text=f"Sync response to: {prompt}")
-            
-            async def generate_batch(self, prompts: List[str], **kwargs) -> List[ModelResponse]:
-                return [ModelResponse(text=f"Response to: {p}") for p in prompts]
-        
-        config = ModelConfig(model_name="concrete-model")
-        model = ConcreteModel(config)
-        
-        assert model.model_name == "concrete-model"
-        assert model.config == config
-        assert model.supports_batch() is True  # default implementation
-    
-    def test_base_model_get_model_info(self):
-        """Test the default get_model_info implementation."""
-        
-        class ConcreteModel(BaseModel):
-            async def generate(self, prompt: str, **kwargs) -> ModelResponse:
-                return ModelResponse(text="test")
-            
-            def generate_sync(self, prompt: str, **kwargs) -> ModelResponse:
-                return ModelResponse(text="test")
-            
-            async def generate_batch(self, prompts: List[str], **kwargs) -> List[ModelResponse]:
-                return []
-        
-        config = ModelConfig(
-            model_name="test-model",
-            temperature=0.8,
-            max_tokens=100
-        )
-        model = ConcreteModel(config)
-        
-        info = model.get_model_info()
-        assert isinstance(info, dict)
-        assert info["model_name"] == "test-model"
-        assert "config" in info
-        assert info["config"]["temperature"] == 0.8
-    
-    def test_supports_batch_override(self):
-        """Test overriding the supports_batch method."""
-        
-        class NoBatchModel(BaseModel):
-            async def generate(self, prompt: str, **kwargs) -> ModelResponse:
-                return ModelResponse(text="test")
-            
-            def generate_sync(self, prompt: str, **kwargs) -> ModelResponse:
-                return ModelResponse(text="test")
-            
-            async def generate_batch(self, prompts: List[str], **kwargs) -> List[ModelResponse]:
-                raise NotImplementedError("Batch not supported")
-            
-            def supports_batch(self) -> bool:
-                return False
-        
-        config = ModelConfig(model_name="no-batch-model")
-        model = NoBatchModel(config)
-        
-        assert model.supports_batch() is False
 
 
-class TestModelValidation:
-    """Test validation and error handling in model classes."""
+class TestModelConfigValidation:
+    """Test detailed model configuration validation."""
     
-    def test_model_response_validation(self):
-        """Test ModelResponse validation."""
-        # Valid response
-        response = ModelResponse(text="Hello")
-        assert response.text == "Hello"
+    def test_temperature_validation(self):
+        """Test temperature parameter validation."""
+        # Valid temperatures
+        config = ModelConfig(model_name="test", temperature=0.0)
+        assert config.temperature == 0.0
         
-        # Test with invalid types - pydantic should handle this
+        config = ModelConfig(model_name="test", temperature=1.0)
+        assert config.temperature == 1.0
+        
+        config = ModelConfig(model_name="test", temperature=0.5)
+        assert config.temperature == 0.5
+    
+    def test_max_tokens_validation(self):
+        """Test max_tokens parameter validation."""
+        # Valid max_tokens
+        config = ModelConfig(model_name="test", max_tokens=100)
+        assert config.max_tokens == 100
+        
+        config = ModelConfig(model_name="test", max_tokens=8192)
+        assert config.max_tokens == 8192
+        
+        # None should be allowed
+        config = ModelConfig(model_name="test", max_tokens=None)
+        assert config.max_tokens is None
+    
+    def test_top_p_validation(self):
+        """Test top_p parameter validation."""
+        # Valid top_p values
+        config = ModelConfig(model_name="test", top_p=0.0)
+        assert config.top_p == 0.0
+        
+        config = ModelConfig(model_name="test", top_p=1.0)
+        assert config.top_p == 1.0
+        
+        config = ModelConfig(model_name="test", top_p=0.95)
+        assert config.top_p == 0.95
+    
+    def test_model_name_validation(self):
+        """Test model name validation."""
+        # Model name is required
         with pytest.raises((ValueError, TypeError)):
-            ModelResponse(text=123)  # text should be string
+            ModelConfig()
+        
+        with pytest.raises((ValueError, TypeError)):
+            ModelConfig(model_name=None)
+        
+        with pytest.raises((ValueError, TypeError)):
+            ModelConfig(model_name="")
     
-    def test_model_config_validation(self):
-        """Test ModelConfig validation."""
-        # Valid config
+    def test_additional_params_handling(self):
+        """Test additional parameters handling."""
+        params = {"custom_param": "value", "another": 123}
+        config = ModelConfig(model_name="test", additional_params=params)
+        
+        assert config.additional_params == params
+        
+        # Should handle empty dict
+        config = ModelConfig(model_name="test", additional_params={})
+        assert config.additional_params == {}
+        
+        # Should default to empty dict if not provided
         config = ModelConfig(model_name="test")
-        assert config.model_name == "test"
-        
-        # Test with invalid temperature
-        with pytest.raises((ValueError, TypeError)):
-            ModelConfig(model_name="test", temperature="invalid")
-        
-        # Test with negative temperature (if validation is added)
-        config = ModelConfig(model_name="test", temperature=-1.0)
-        # Currently no validation, but this is where it would go
-        assert config.temperature == -1.0 
+        assert config.additional_params == {} 

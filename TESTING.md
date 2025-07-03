@@ -1,223 +1,231 @@
-# Testing Guide for LLM-AgentTypeEval
+# Testing Guide
 
-This document provides an overview of the comprehensive test suite created for the LLM-AgentTypeEval project.
+This document provides comprehensive testing guidelines for the AgenticEvals project.
 
-## Summary of Changes
-
-1. **Removed emojis** from all code files (`example_usage.py`, `quick_start.py`)
-2. **Created comprehensive test suite** with 100+ tests covering all major functionality
-3. **Added test dependencies** to `requirements.txt`
-4. **Created test runner script** for convenient test execution
-
-## Test Structure Overview
-
-The test suite is organized into the following structure:
+## Test Structure
 
 ```
 tests/
 ├── conftest.py                        # Central fixtures and configuration
 ├── pytest.ini                        # Pytest settings
-├── run_tests.py                       # Convenient test runner
-├── README.md                          # Detailed testing documentation
-├── test_models/                       # Model system tests (25+ tests)
-│   ├── test_base.py                   # Base model interface tests
-│   ├── test_gemini.py                 # Gemini implementation tests  
-│   └── test_loader.py                 # Model loading tests
-├── test_benchmark/                    # Benchmark framework tests (30+ tests)
-│   ├── test_base.py                   # Core benchmark classes
-│   └── test_loader.py                 # Benchmark loading system
-├── test_benchmarks/                   # Specific benchmark tests (20+ tests)
-│   └── test_simple_reflex_example.py  # Traffic light benchmark tests
-└── test_utils/                       # Utility tests (15+ tests)
-    ├── test_config.py                 # Configuration management
-    └── test_logging.py                # Logging system tests
+├── test_benchmark/                    # Benchmark framework tests
+├── test_benchmarks/                   # Specific benchmark implementations
+├── test_models/                       # Model system tests
+└── test_utils/                        # Utility function tests
 ```
 
 ## Test Categories
 
-### 1. Model System Tests (`test_models/`)
+### Unit Tests
+- **Purpose**: Fast, isolated testing of individual components
+- **Scope**: Configuration validation, class initialization, method signatures
+- **Dependencies**: Minimal external dependencies
+- **Execution**: Always run in CI/CD
 
-**Base Model Tests (`test_base.py`)**:
-- ModelResponse creation and serialization
-- ModelConfig validation and defaults
-- BaseModel abstract interface compliance
-- Concrete implementation testing
-- Error handling and validation
+### Integration Tests
+- **Purpose**: End-to-end testing with real APIs
+- **Scope**: Real model calls, benchmark execution, API integration
+- **Dependencies**: Requires valid API keys
+- **Execution**: Conditional based on environment
 
-**Gemini Model Tests (`test_gemini.py`)**:
-- Initialization with/without API keys
-- Synchronous and asynchronous generation
-- Batch processing capabilities
-- Error handling and recovery
-- Safety settings configuration
-- Token counting and metadata extraction
+### Configuration Tests
+- **Purpose**: Validate setup and configuration
+- **Scope**: Environment variables, file parsing, validation rules
+- **Dependencies**: File system, environment variables
+- **Execution**: Part of standard test suite
 
-**Model Loader Tests (`test_loader.py`)**:
-- Model registry management
-- Dynamic model loading
-- Configuration building with defaults/overrides
-- Environment variable handling
-- Config file loading
-- Integration test scenarios
+## Testing Strategy
 
-### 2. Benchmark Framework Tests (`test_benchmark/`)
+### Real Data Over Simulation
+- **Configuration objects** with real validation
+- **Environment-based testing** for external dependencies
+- **Integration testing** with actual APIs when available
+- **Conditional test execution** based on resource availability
 
-**Base Benchmark Tests (`test_base.py`)**:
-- AgentType enum validation
-- TaskResult creation and metrics
-- BenchmarkResult aggregation and analysis
-- BenchmarkConfig validation
-- Task dataclass functionality
-- BaseBenchmark abstract interface
-- Complete benchmark execution workflows
-- Error handling during evaluation
-- Task limiting and filtering
-
-**Benchmark Loader Tests (`test_loader.py`)**:
-- Auto-discovery of benchmark modules
-- Benchmark registry management
-- Information retrieval and metadata
-- Configuration building
-- Batch loading by agent type
-- Error recovery and graceful degradation
-- Config file support
-
-### 3. Specific Benchmark Tests (`test_benchmarks/`)
-
-**Traffic Light Benchmark Tests (`test_simple_reflex_example.py`)**:
-- Benchmark initialization and setup
-- Task generation and variety
-- Prompt creation and formatting
-- Successful task evaluation
-- Error handling during evaluation
-- Score calculation algorithms:
-  - Exact matching
-  - Case insensitive matching  
-  - Partial credit for extra words
-  - Synonym recognition
-- Detailed metrics calculation
-- Response analysis and validation
-
-### 4. Utility Tests (`test_utils/`)
-
-**Configuration Tests (`test_config.py`)**:
-- Config dataclass defaults and customization
-- ConfigManager initialization and loading
-- Environment variable integration
-- YAML file loading and saving
-- Model and benchmark configuration building
-- Global configuration management
-
-**Logging Tests (`test_logging.py`)**:
-- LoggerAdapter with standard logging
-- LoggerAdapter with Loguru backend
-- Logging setup and configuration
-- File and console output handling
-- Log level management
-- Backend detection and switching
-
-## Test Features
-
-### Comprehensive Mocking
-- **External API calls** mocked for fast, reliable unit tests
-- **File system operations** mocked to avoid side effects
-- **Environment variables** properly isolated between tests
-- **Network requests** mocked for predictable behavior
-
-### Fixtures and Test Data
-- **Pre-configured objects** for common test scenarios
-- **Mock models** with configurable responses
-- **Sample tasks and benchmarks** for consistent testing
-- **Temporary files** and directories for file I/O tests
-- **Environment cleanup** to prevent test pollution
-
-### Integration Test Support
-- **API key detection** for integration test execution
-- **Graceful skipping** when dependencies unavailable
-- **Real API testing** with actual Gemini models
-- **End-to-end workflow** validation
+### Test Isolation
+- **Independent test cases** that don't affect each other
+- **Clean test environments** with proper setup/teardown
+- **Focused test scope** testing one thing at a time
 
 ### Error Handling Coverage
-- **Exception scenarios** for all major components
-- **Graceful degradation** testing
-- **Input validation** and edge cases
-- **Resource cleanup** on failures
+- **Input validation** testing with invalid data
+- **Exception handling** testing error conditions
+- **Resource availability** testing missing dependencies
+- **API failure scenarios** testing network/service issues
 
 ## Running Tests
 
-### Quick Start
+### Standard Test Execution
+
 ```bash
-# Install test dependencies
-python3 run_tests.py --install-deps
+# All tests
+python3 run_tests.py
 
-# Run all unit tests (fast)
-python3 run_tests.py --unit
-
-# Run with coverage
-python3 run_tests.py --coverage --unit
-
-# Run specific test file
-python3 run_tests.py --file test_models/test_loader.py
-
-# Run integration tests (requires API key)
-export GOOGLE_API_KEY="your-key"
-python3 run_tests.py --integration
+# Specific categories
+python3 run_tests.py --unit          # Unit tests only
+python3 run_tests.py --integration   # Integration tests (requires API keys)
+python3 run_tests.py --fast          # Fast tests only
+python3 run_tests.py --coverage      # With coverage reporting
 ```
 
-### Advanced Usage
+### Environment Setup
+
 ```bash
-# Run specific test class
-python3 run_tests.py --file test_models/test_loader.py --class TestModelLoader
+# For integration tests
+export GOOGLE_API_KEY="your_gemini_api_key"
+# or
+export GEMINI_API_KEY="your_gemini_api_key"
 
-# Run specific test method
-python3 run_tests.py --file test_models/test_loader.py --class TestModelLoader --method test_load_model_success
-
-# Verbose output for debugging
-python3 run_tests.py --verbose --unit
-
-# Coverage report generation
-python3 run_tests.py --coverage
-# Opens htmlcov/index.html for detailed coverage
+# Alternative: use setup script
+python3 setup_env.py
 ```
 
-## Test Quality Metrics
+### Pytest Commands
 
-- **100+ individual test cases** covering all major functionality
-- **Comprehensive error handling** scenarios
-- **Fast execution** (unit tests < 10 seconds)
-- **High isolation** through proper mocking
-- **Clear test organization** with descriptive names
-- **Consistent patterns** across all test modules
-- **Good documentation** with docstrings and comments
+```bash
+# Direct pytest usage
+pytest tests/                         # All tests
+pytest tests/test_models/             # Model tests only
+pytest -m integration                 # Integration tests only
+pytest -m "not integration"           # Exclude integration tests
+pytest --cov=src                      # With coverage
+```
 
-## CI/CD Ready
+## Test Development
 
-The test suite is designed for continuous integration:
-- **No external dependencies** required for unit tests
-- **Environment variable detection** for optional integration tests
-- **Clear exit codes** for automation
-- **Structured output** for reporting
-- **Parallel execution** support
-- **Coverage reporting** integration
+### Writing New Tests
 
-## Benefits
+1. **Choose the right test type**:
+   - Unit test for isolated functionality
+   - Integration test for real API interactions
+   - Configuration test for setup validation
 
-1. **Confidence in changes**: Comprehensive coverage ensures modifications don't break existing functionality
-2. **Fast feedback**: Unit tests provide quick validation during development
-3. **Documentation**: Tests serve as executable examples of how to use the API
-4. **Regression prevention**: Automated testing catches regressions early
-5. **Quality assurance**: Tests validate expected behavior and edge cases
-6. **Integration validation**: End-to-end tests ensure system components work together
+2. **Use descriptive names**:
+   ```python
+   def test_model_config_validates_temperature_range():
+       """Test that temperature validation rejects out-of-range values."""
+   ```
 
-## Next Steps
+3. **Test both success and failure**:
+   ```python
+   def test_valid_configuration_creation():
+       # Test successful creation
+       
+   def test_invalid_configuration_raises_error():
+       # Test error conditions
+   ```
 
-The test suite provides a solid foundation for development. Consider:
+4. **Use appropriate markers**:
+   ```python
+   @pytest.mark.integration
+   def test_real_api_call():
+       # Test requiring external resources
+   ```
 
-1. **Running tests regularly** during development
-2. **Adding tests** for new features as they're developed
-3. **Monitoring coverage** to identify untested code paths
-4. **Integration with CI/CD** for automated validation
-5. **Performance testing** for benchmark execution times
-6. **Load testing** for batch processing capabilities
+### Test Fixtures
 
-This comprehensive test suite ensures the LLM-AgentTypeEval project maintains high quality and reliability as it evolves. 
+Use centralized fixtures from `conftest.py`:
+
+```python
+def test_with_fixtures(sample_model_config, api_key):
+    """Test using common fixtures."""
+    if not api_key:
+        pytest.skip("No API key available")
+    
+    # Use fixtures in test
+```
+
+### Conditional Testing
+
+Handle missing resources gracefully:
+
+```python
+@pytest.mark.integration
+def test_requiring_api_key():
+    """Test that requires API access."""
+    api_key = os.getenv("GOOGLE_API_KEY")
+    if not api_key:
+        pytest.skip("No API key available for integration test")
+    
+    # Proceed with test
+```
+
+## Best Practices
+
+### Test Design
+- **One assertion per test concept**
+- **Clear test documentation**
+- **Predictable test data**
+- **Isolated test execution**
+
+### Performance
+- **Fast unit tests** for quick feedback
+- **Efficient resource usage** in integration tests
+- **Parallel test execution** where possible
+- **Appropriate test timeouts**
+
+### Maintenance
+- **Update tests with code changes**
+- **Remove obsolete tests**
+- **Keep test dependencies minimal**
+- **Document complex test setups**
+
+### Coverage Goals
+- **High unit test coverage** (>90%)
+- **Critical path integration testing**
+- **Error condition coverage**
+- **Configuration validation coverage**
+
+## Continuous Integration
+
+### CI Pipeline Testing
+- **Fast unit tests** run on every commit
+- **Integration tests** run on main branch
+- **Coverage reporting** for quality metrics
+- **Test result reporting** for visibility
+
+### Environment Requirements
+- **Python dependencies** installed
+- **API keys** available (for integration tests)
+- **Test data** accessible
+- **Clean test environment** for each run
+
+## Debugging Tests
+
+### Common Issues
+1. **Import errors**: Check Python path and working directory
+2. **Missing dependencies**: Install test requirements
+3. **API key issues**: Verify environment variables
+4. **Async test problems**: Check pytest-asyncio installation
+
+### Debugging Commands
+```bash
+# Verbose output
+pytest -v -s tests/test_models/test_gemini.py
+
+# Stop on first failure
+pytest -x
+
+# Drop into debugger on failure
+pytest --pdb
+
+# Run specific test with output
+pytest -v -s tests/test_models/test_gemini.py::test_specific_function
+```
+
+## Quality Metrics
+
+### Coverage Targets
+- **Unit tests**: >90% line coverage
+- **Integration tests**: Critical functionality covered
+- **Overall**: >85% combined coverage
+
+### Performance Targets
+- **Unit tests**: <1 second per test
+- **Integration tests**: <30 seconds per test
+- **Full test suite**: <5 minutes total
+
+### Reliability Targets
+- **Test stability**: >99% pass rate in CI
+- **Flaky test rate**: <1% of total tests
+- **Test maintenance**: Regular review and updates 
