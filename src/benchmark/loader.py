@@ -8,7 +8,7 @@ from typing import Dict, Type, List, Optional
 from pathlib import Path
 
 from .base import BaseBenchmark, BenchmarkConfig, AgentType
-from .registry import BenchmarkRegistry
+from .registry import BenchmarkRegistry, get_registry
 from ..utils.logging import get_logger
 
 logger = get_logger(__name__)
@@ -19,7 +19,7 @@ class BenchmarkLoader:
     
     def __init__(self):
         """Initialize the benchmark loader."""
-        self.registry = BenchmarkRegistry()
+        self.registry = get_registry()  # Use the global registry
         self._auto_discover_benchmarks()
     
     def _auto_discover_benchmarks(self):
@@ -54,7 +54,7 @@ class BenchmarkLoader:
         
         # Check if the benchmark class has a static info method
         if hasattr(benchmark_class, 'get_static_info'):
-            return benchmark_class.get_static_info()
+            return getattr(benchmark_class, 'get_static_info')()
         
         # Otherwise get info from class attributes or docstring
         agent_type = self.registry.get_benchmark_agent_type(benchmark_name)
@@ -67,11 +67,13 @@ class BenchmarkLoader:
         }
         
         # Add any additional class-level information
-        if hasattr(benchmark_class, 'BENCHMARK_DESCRIPTION'):
-            info["description"] = benchmark_class.BENCHMARK_DESCRIPTION
+        description = getattr(benchmark_class, 'BENCHMARK_DESCRIPTION', None)
+        if description:
+            info["description"] = description
         
-        if hasattr(benchmark_class, 'BENCHMARK_VERSION'):
-            info["version"] = benchmark_class.BENCHMARK_VERSION
+        version = getattr(benchmark_class, 'BENCHMARK_VERSION', None)
+        if version:
+            info["version"] = version
             
         return info
     

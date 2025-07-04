@@ -80,7 +80,7 @@ async def main():
         if test_response.prompt_tokens:
             print(f"   Tokens: {test_response.prompt_tokens} prompt + {test_response.completion_tokens} completion = {test_response.total_tokens} total")
         
-        # Load and run benchmark
+        # Load and run benchmark  
         print("\nLoading traffic light benchmark...")
         benchmark = load_benchmark("traffic_light_simple")
         print(f"SUCCESS: Benchmark loaded: {benchmark.benchmark_name}")
