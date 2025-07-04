@@ -5,13 +5,13 @@ Tests for Gemini model implementation.
 import pytest
 import os
 
-from models.gemini import GeminiModel
-from models.base import ModelConfig, ModelResponse
+from src.models.gemini import GeminiModel
+from src.models.base import ModelConfig, ModelResponse
 
 
 def test_gemini_model_init():
     """Test GeminiModel initialization."""
-    config = ModelConfig(model_name="gemini-2.5-pro")
+    config = ModelConfig(model_name="gemini-2.5-pro", api_key="test-key")
     model = GeminiModel(config)
     
     assert model.config == config
@@ -79,8 +79,8 @@ class TestGeminiModelMethods:
         
         assert isinstance(info, dict)
         assert info["model_name"] == "gemini-2.5-pro"
-        assert "temperature" in info
-        assert "max_tokens" in info
+        assert "provider" in info
+        assert "model_type" in info
 
 
 class TestGeminiModelIntegration:
@@ -146,7 +146,7 @@ class TestGeminiModelValidation:
     def test_model_config_validation(self):
         """Test model configuration validation."""
         # Test with minimal config
-        config = ModelConfig(model_name="gemini-2.5-pro")
+        config = ModelConfig(model_name="gemini-2.5-pro", api_key="test-key")
         model = GeminiModel(config)
         assert model.config.model_name == "gemini-2.5-pro"
         

@@ -5,10 +5,10 @@ Tests for the traffic light simple reflex benchmark.
 import pytest
 import os
 
-from benchmarks.simple_reflex_example import TrafficLightBenchmark
-from benchmark.base import BenchmarkConfig, AgentType, Task
-from models.base import ModelResponse
-from models.loader import load_gemini
+from src.benchmarks.simple_reflex_example import TrafficLightBenchmark
+from src.benchmark.base import BenchmarkConfig, AgentType, Task
+from src.models.base import ModelResponse
+from src.models.loader import load_gemini
 
 
 class TestTrafficLightBenchmark:
@@ -125,7 +125,7 @@ class TestTrafficLightBenchmark:
         info = benchmark.get_benchmark_info()
         
         assert isinstance(info, dict)
-        assert "name" in info
+        assert "benchmark_name" in info
         assert "description" in info
         assert "agent_type" in info
 

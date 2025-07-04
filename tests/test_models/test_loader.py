@@ -5,9 +5,9 @@ Tests for model loader functionality.
 import pytest
 import os
 
-from models.loader import ModelLoader, load_gemini, load_model_from_name
-from models.base import ModelConfig, BaseModel
-from models.gemini import GeminiModel
+from src.models.loader import ModelLoader, load_gemini, load_model_from_name
+from src.models.base import ModelConfig, BaseModel
+from src.models.gemini import GeminiModel
 
 
 class TestModelLoader:

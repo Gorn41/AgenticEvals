@@ -6,8 +6,8 @@ import pytest
 import os
 from pathlib import Path
 
-from models.base import ModelConfig, ModelResponse, BaseModel
-from benchmark.base import Task, TaskResult, BenchmarkResult, AgentType
+from src.models.base import ModelConfig, ModelResponse, BaseModel
+from src.benchmark.base import Task, TaskResult, BenchmarkResult, AgentType
 
 
 # Test data directory
@@ -122,7 +122,7 @@ timeout_seconds: 30
 @pytest.fixture
 def sample_config():
     """Fixture providing a sample configuration object."""
-    from utils.config import Config
+    from src.utils.config import Config
     
     config = Config()
     config.default_model = "gemini-2.5-pro"

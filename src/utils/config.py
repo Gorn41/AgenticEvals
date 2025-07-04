@@ -56,6 +56,10 @@ class ConfigManager:
         self.config_path = config_path or Path("config.yaml")
         self.config = Config()
         
+        # Load .env file if available
+        if DOTENV_AVAILABLE:
+            load_dotenv()
+        
         # Try to load existing config
         if self.config_path.exists():
             self.load_config()
@@ -78,7 +82,7 @@ class ConfigManager:
             self.config.results_dir = results_dir
         if timeout := os.getenv("TIMEOUT_SECONDS"):
             try:
-                self.config.timeout_seconds = float(timeout)
+                self.config.default_timeout_seconds = float(timeout)
             except ValueError:
                 logger.warning(f"Invalid timeout value: {timeout}")
     
@@ -132,7 +136,7 @@ class ConfigManager:
         """Get model configuration for a specific model."""
         config = {
             "model_name": model_name,
-            "timeout_seconds": self.config.timeout_seconds,
+            "timeout_seconds": self.config.default_timeout_seconds,
         }
         
         # Add API key if available
@@ -146,7 +150,12 @@ class ConfigManager:
     
     def get_benchmark_config(self, **overrides) -> Dict[str, Any]:
         """Get benchmark configuration with optional overrides."""
-        config = self.config.default_benchmark_config.copy()
+        config = {
+            "timeout_seconds": self.config.default_timeout_seconds,
+            "max_retries": self.config.default_max_retries,
+            "collect_detailed_metrics": self.config.default_collect_detailed_metrics,
+            "save_responses": self.config.default_save_responses,
+        }
         config.update(overrides)
         return config
 

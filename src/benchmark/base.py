@@ -4,6 +4,7 @@ Base benchmark interface for AgenticEvals.
 
 import asyncio
 import time
+import uuid
 from abc import ABC, abstractmethod
 from enum import Enum
 from typing import List, Dict, Any, Optional
@@ -30,27 +31,27 @@ class AgentType(Enum):
 class TaskResult(PydanticBaseModel):
     """Result from a single task execution."""
     task_id: str
-    task_name: str
-    agent_type: AgentType
+    task_name: Optional[str] = None
+    agent_type: Optional[AgentType] = None
     success: bool
     score: float
-    metrics: Dict[str, Any]
+    metrics: Dict[str, Any] = {}
     model_response: Optional[ModelResponse] = None
-    execution_time: float
+    execution_time: Optional[float] = None
     error_message: Optional[str] = None
     metadata: Dict[str, Any] = {}
 
 
 class BenchmarkResult(PydanticBaseModel):
     """Result from a complete benchmark execution."""
-    benchmark_id: str
     benchmark_name: str
-    agent_type: AgentType
     model_name: str
-    timestamp: str
+    agent_type: AgentType
     task_results: List[TaskResult]
     overall_score: float
-    summary_metrics: Dict[str, Any]
+    benchmark_id: Optional[str] = None
+    timestamp: Optional[str] = None
+    summary_metrics: Dict[str, Any] = {}
     execution_metadata: Dict[str, Any] = {}
     
     def get_success_rate(self) -> float:
@@ -100,18 +101,12 @@ class BenchmarkConfig(PydanticBaseModel):
 class Task:
     """Represents a single task in a benchmark."""
     task_id: str
-    name: str
-    description: str
     prompt: str
+    name: Optional[str] = None
+    description: Optional[str] = None
     expected_output: Optional[str] = None
-    evaluation_criteria: Dict[str, Any] = None
-    metadata: Dict[str, Any] = None
-    
-    def __post_init__(self):
-        if self.evaluation_criteria is None:
-            self.evaluation_criteria = {}
-        if self.metadata is None:
-            self.metadata = {}
+    evaluation_criteria: Dict[str, Any] = field(default_factory=dict)
+    metadata: Dict[str, Any] = field(default_factory=dict)
 
 
 class BaseBenchmark(ABC):
@@ -200,10 +195,14 @@ class BaseBenchmark(ABC):
         if not task_results:
             return {}
         
+        # Calculate average execution time, filtering out None values
+        execution_times = [r.execution_time for r in task_results if r.execution_time is not None]
+        avg_execution_time = sum(execution_times) / len(execution_times) if execution_times else 0.0
+        
         return {
             "success_rate": sum(1 for r in task_results if r.success) / len(task_results),
             "average_score": sum(r.score for r in task_results) / len(task_results),
-            "average_execution_time": sum(r.execution_time for r in task_results) / len(task_results),
+            "average_execution_time": avg_execution_time,
             "num_tasks_completed": len(task_results),
             "num_tasks_successful": sum(1 for r in task_results if r.success),
             "num_tasks_failed": sum(1 for r in task_results if not r.success),

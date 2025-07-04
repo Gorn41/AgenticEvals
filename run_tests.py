@@ -12,14 +12,14 @@ import os
 from pathlib import Path
 
 
-def run_command(cmd, description=""):
+def run_command(cmd, description="", env=None):
     """Run a command and return the exit code."""
     if description:
         print(f"\n{description}")
         print("-" * len(description))
     
     print(f"Running: {' '.join(cmd)}")
-    result = subprocess.run(cmd, capture_output=False)
+    result = subprocess.run(cmd, capture_output=False, env=env)
     return result.returncode
 
 
@@ -114,8 +114,19 @@ def main():
         print("pip install pytest pytest-asyncio pytest-cov")
         return 1
     
+    # Set up environment for proper imports
+    env = os.environ.copy()
+    project_root = Path.cwd()
+    
+    # Add project root to PYTHONPATH so src package can be imported
+    pythonpath = env.get("PYTHONPATH", "")
+    if pythonpath:
+        env["PYTHONPATH"] = f"{project_root}:{pythonpath}"
+    else:
+        env["PYTHONPATH"] = str(project_root)
+    
     # Build pytest command
-    cmd = [sys.executable, "-m", "pytest"]
+    cmd = [sys.executable, "-m", "pytest", "--asyncio-mode=auto"]
     
     # Add verbosity
     if args.verbose:
@@ -162,7 +173,7 @@ def main():
         return 1
     
     # Run tests
-    result = run_command(cmd, description)
+    result = run_command(cmd, description, env=env)
     
     # Print coverage info if generated
     if args.coverage and result == 0:

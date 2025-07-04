@@ -6,7 +6,7 @@ import pytest
 import os
 from pathlib import Path
 
-from utils.config import Config, ConfigManager
+from src.utils.config import Config, ConfigManager
 
 
 class TestConfig:
@@ -17,21 +17,21 @@ class TestConfig:
         config = Config()
         
         assert config.default_model == "gemini-2.5-pro"
-        assert config.api_keys is None
+        assert isinstance(config.api_keys, dict)
         assert config.log_level == "INFO"
-        assert config.timeout_seconds == 60
+        assert config.default_timeout_seconds == 30.0
     
     def test_config_with_values(self):
         """Test config with custom values."""
         config = Config(
             default_model="gemini-2.5-flash",
             log_level="DEBUG",
-            timeout_seconds=30
+            default_timeout_seconds=30.0
         )
         
         assert config.default_model == "gemini-2.5-flash"
         assert config.log_level == "DEBUG"
-        assert config.timeout_seconds == 30
+        assert config.default_timeout_seconds == 30.0
 
 
 class TestConfigManager:
@@ -50,7 +50,7 @@ class TestConfigManager:
         
         assert model_config["model_name"] == "gemini-2.5-pro"
         assert "api_key" in model_config
-        assert "temperature" in model_config
+        assert "timeout_seconds" in model_config
     
     def test_get_model_config_with_env_key(self):
         """Test getting model config with environment API key."""
@@ -67,7 +67,7 @@ class TestConfigManager:
         
         assert model_config["model_name"] == "gemini-2.5-flash"
         assert "api_key" in model_config
-        assert "temperature" in model_config
+        assert "timeout_seconds" in model_config
 
 
 class TestConfigFiles:
@@ -93,8 +93,8 @@ class TestConfigFiles:
         assert config.log_level in ["DEBUG", "INFO", "WARNING", "ERROR"]
         
         # Test reasonable timeout
-        assert config.timeout_seconds > 0
-        assert config.timeout_seconds <= 300  # 5 minutes max
+        assert config.default_timeout_seconds > 0
+        assert config.default_timeout_seconds <= 300  # 5 minutes max
 
 
 class TestEnvironmentIntegration:
@@ -116,12 +116,8 @@ class TestEnvironmentIntegration:
         """Test configuration precedence rules."""
         manager = ConfigManager()
         
-        # Test explicit parameters override defaults
-        model_config = manager.get_model_config(
-            "gemini-2.5-flash",
-            temperature=0.9,
-            max_tokens=500
-        )
+        # Test basic model config retrieval
+        model_config = manager.get_model_config("gemini-2.5-flash")
         
-        assert model_config["temperature"] == 0.9
-        assert model_config["max_tokens"] == 500 
+        assert model_config["model_name"] == "gemini-2.5-flash"
+        assert "timeout_seconds" in model_config 

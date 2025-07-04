@@ -10,14 +10,14 @@ import time
 import re
 from typing import List, Dict, Any
 from ..benchmark.base import BaseBenchmark, Task, TaskResult, BenchmarkConfig, AgentType
-from ..benchmark.registry import register_benchmark
+from ..benchmark.registry import benchmark
 from ..models.base import BaseModel, ModelResponse
 from ..utils.logging import get_logger
 
 logger = get_logger(__name__)
 
 
-@register_benchmark(
+@benchmark(
     name="traffic_light_simple",
     agent_type=AgentType.SIMPLE_REFLEX,
     description="Traffic light response benchmark testing immediate rule-based responses"
@@ -156,8 +156,8 @@ Your response:"""
     
     def calculate_score(self, task: Task, model_response: ModelResponse) -> float:
         """Calculate score for a traffic light task."""
-        expected = task.expected_output.lower()
-        response_text = model_response.text.strip().lower()
+        expected = task.expected_output.lower() if task.expected_output else ""
+        response_text = model_response.text.strip().lower() if model_response.text else ""
         
         # Remove common punctuation
         response_text = re.sub(r'[.,!?;:]', '', response_text)
@@ -191,13 +191,13 @@ Your response:"""
     
     def _calculate_detailed_metrics(self, task: Task, model_response: ModelResponse) -> Dict[str, Any]:
         """Calculate detailed metrics for analysis."""
-        response_text = model_response.text.strip()
-        expected = task.expected_output.lower()
+        response_text = model_response.text.strip() if model_response.text else ""
+        expected = task.expected_output.lower() if task.expected_output else ""
         
         # Response analysis
         word_count = len(response_text.split())
         char_count = len(response_text)
-        contains_expected = expected.lower() in response_text.lower()
+        contains_expected = expected in response_text.lower() if expected and response_text else False
         
         # Check if response follows instructions (one word only)
         follows_instructions = word_count == 1
@@ -213,5 +213,5 @@ Your response:"""
             "first_word": first_word,
             "exact_match": response_text.lower().strip() == expected,
             "response_latency": model_response.latency,
-            "tokens_used": model_response.tokens_used,
+            "tokens_used": model_response.total_tokens,
         } 

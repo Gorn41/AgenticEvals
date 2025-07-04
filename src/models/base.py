@@ -5,7 +5,7 @@ Base model interface for AgenticEvals.
 import asyncio
 from abc import ABC, abstractmethod
 from typing import List, Dict, Any, Optional
-from pydantic import BaseModel as PydanticBaseModel, Field, validator
+from pydantic import BaseModel as PydanticBaseModel, Field, model_validator
 
 from ..utils.logging import get_logger
 
@@ -23,12 +23,14 @@ class ModelResponse(PydanticBaseModel):
     latency: Optional[float] = None
     metadata: Dict[str, Any] = Field(default_factory=dict)
 
-    @validator('total_tokens', always=True)
-    def calculate_total_tokens(cls, v, values):
+    @model_validator(mode='before')
+    @classmethod
+    def calculate_total_tokens(cls, values):
         """Calculate total tokens if not provided."""
-        if v is None and values.get('prompt_tokens') and values.get('completion_tokens'):
-            return values['prompt_tokens'] + values['completion_tokens']
-        return v
+        if isinstance(values, dict):
+            if values.get('total_tokens') is None and values.get('prompt_tokens') and values.get('completion_tokens'):
+                values['total_tokens'] = values['prompt_tokens'] + values['completion_tokens']
+        return values
 
 
 class ModelConfig(PydanticBaseModel):
@@ -123,5 +125,5 @@ class BaseModel(ABC):
         return {
             "model_name": self.model_name,
             "supports_batch": self.supports_batch(),
-            "config": self.config.dict()
+            "config": self.config.model_dump()
         } 
