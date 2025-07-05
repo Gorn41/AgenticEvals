@@ -216,7 +216,7 @@ If you use AgenticEvals in your research, please cite:
 
 ```bibtex
 @software{agentic_evals,
-  title={AgenticEvals: A Benchmark for LLM Agent Capabilities},
+  title={AgenticEvals: A Benchmark for LLM Agent Capabilities Across the Five Foundational Agent Types},
   author={Nattaput (Gorn) Namchittai},
   year={2025},
   url={https://github.com/Gorn41/AgenticEvals}
