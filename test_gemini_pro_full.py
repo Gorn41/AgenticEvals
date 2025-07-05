@@ -22,7 +22,7 @@ from src.benchmark.base import TaskResult
 
 async def test_email_tasks(model, benchmark_name: str = "email_autoresponder_simple") -> Dict[str, Any]:
     """Test model on all email tasks."""
-    print(f"\n[EMAIL] Testing Email Auto-Responder Tasks")
+    print(f"\n Testing Email Auto-Responder Tasks")
     print("=" * 60)
     
     # Load email benchmark
@@ -37,7 +37,7 @@ async def test_email_tasks(model, benchmark_name: str = "email_autoresponder_sim
     total_start_time = time.time()
     
     for i, task in enumerate(tasks):
-        print(f"\n[TASK] Task {i+1}/{len(tasks)}: {task.name}")
+        print(f"\n Task {i+1}/{len(tasks)}: {task.name}")
         print(f"   Scenario: {task.metadata.get('scenario', 'unknown')}")
         print(f"   Expected: {task.expected_output}")
         print(f"   Difficulty: {task.metadata.get('difficulty', 'unknown')}")
@@ -101,7 +101,7 @@ async def test_email_tasks(model, benchmark_name: str = "email_autoresponder_sim
         'results': results
     }
     
-    print(f"\n[SUMMARY] EMAIL BENCHMARK SUMMARY:")
+    print(f"\n EMAIL BENCHMARK SUMMARY:")
     print(f"   Success Rate: {summary['success_rate']:.1%} ({summary['successful_tasks']}/{summary['total_tasks']})")
     print(f"   Average Score: {summary['average_score']:.3f}")
     print(f"   Average Time per Task: {summary['average_time']:.2f}s")
@@ -111,7 +111,7 @@ async def test_email_tasks(model, benchmark_name: str = "email_autoresponder_sim
 
 async def test_maze_tasks(model, benchmark_name: str = "textual_maze_navigation") -> Dict[str, Any]:
     """Test model on all maze tasks."""
-    print(f"\n[MAZE] Testing Maze Navigation Tasks")
+    print(f"\n Testing Maze Navigation Tasks")
     print("=" * 60)
     
     # Load maze benchmark
@@ -126,7 +126,7 @@ async def test_maze_tasks(model, benchmark_name: str = "textual_maze_navigation"
     total_start_time = time.time()
     
     for i, task in enumerate(tasks):
-        print(f"\n[TASK] Task {i+1}/{len(tasks)}: {task.name}")
+        print(f"\n Task {i+1}/{len(tasks)}: {task.name}")
         print(f"   Difficulty: {task.metadata.get('difficulty', 'unknown')}")
         print(f"   Size: {task.metadata.get('maze_size', 'unknown')}")
         print(f"   Optimal Path: {task.metadata.get('optimal_path_length', 'unknown')} moves")
@@ -141,7 +141,7 @@ async def test_maze_tasks(model, benchmark_name: str = "textual_maze_navigation"
         
         try:
             # Run the task
-            print(f"   [RUNNING] Running navigation... (this may take a while)")
+            print(f"   Running navigation... (this may take a while)")
             result = await benchmark.evaluate_task(task, model)
             results.append(result)
             
@@ -219,7 +219,7 @@ async def test_maze_tasks(model, benchmark_name: str = "textual_maze_navigation"
         'results': results
     }
     
-    print(f"\n[SUMMARY] MAZE BENCHMARK SUMMARY:")
+    print(f"\n MAZE BENCHMARK SUMMARY:")
     print(f"   Success Rate: {summary['success_rate']:.1%} ({summary['successful_tasks']}/{summary['total_tasks']})")
     print(f"   Average Score: {summary['average_score']:.3f}")
     print(f"   Overall Efficiency: {summary['overall_efficiency']:.1%}")
@@ -245,13 +245,13 @@ async def main():
         print("Please set GOOGLE_API_KEY or GEMINI_API_KEY environment variable.")
         return
     
-    print(f"[OK] API key found: {api_key[:10]}...")
+    print(f"API key found: {api_key[:10]}...")
     
     try:
         # Load Gemini Pro 2.5 model
-        print(f"\n[LOADING] Loading Gemini Pro 2.5...")
+        print(f"\n Loading Gemini Pro 2.5...")
         model = load_gemini("gemini-2.5-pro", api_key=api_key, temperature=0.3)
-        print(f"[OK] Model loaded: {model.model_name}")
+        print(f"Model loaded: {model.model_name}")
         
         # Test email tasks
         email_summary = await test_email_tasks(model)
@@ -260,16 +260,16 @@ async def main():
         maze_summary = await test_maze_tasks(model)
         
         # Overall summary
-        print(f"\n[RESULTS] OVERALL EVALUATION SUMMARY")
+        print(f"\nOVERALL EVALUATION SUMMARY")
         print("=" * 70)
         
-        print(f"\n[EMAIL] EMAIL BENCHMARK:")
+        print(f"\n EMAIL BENCHMARK:")
         print(f"   Tasks: {email_summary['total_tasks']}")
         print(f"   Success Rate: {email_summary['success_rate']:.1%}")
         print(f"   Average Score: {email_summary['average_score']:.3f}")
         print(f"   Total Time: {email_summary['total_time']:.1f}s")
         
-        print(f"\n[MAZE] MAZE BENCHMARK:")
+        print(f"\n MAZE BENCHMARK:")
         print(f"   Tasks: {maze_summary['total_tasks']}")
         print(f"   Success Rate: {maze_summary['success_rate']:.1%}")
         print(f"   Average Score: {maze_summary['average_score']:.3f}")
@@ -289,7 +289,7 @@ async def main():
         
         total_time = email_summary['total_time'] + maze_summary['total_time']
         
-        print(f"\nCOMBINED RESULTS:")
+        print(f"\n COMBINED RESULTS:")
         print(f"   Total Tasks: {total_tasks}")
         print(f"   Overall Success Rate: {overall_success_rate:.1%} ({total_successful}/{total_tasks})")
         print(f"   Weighted Average Score: {weighted_avg_score:.3f}")
