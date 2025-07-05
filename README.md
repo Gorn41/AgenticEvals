@@ -104,14 +104,16 @@ Easy to extend with new model providers.
 
 ### Simple Reflex Agent
 - **Traffic Light**: Basic stimulus-response scenarios
+- **Email**: Long input-response scenarios
 - **Security Guard**: Pattern recognition tasks
 
 ### Model-Based Reflex Agent  
-- **Navigation**: State-aware pathfinding
+- **Navigation**: Partially observable state-aware Mulit-Step pathfinding
 - **Inventory Management**: Resource tracking
 
 ### Goal-Based Agent
 - **Task Planning**: Multi-step goal achievement
+- **Booking**: Multi-step goal achievement
 - **Problem Solving**: Constraint satisfaction
 
 ### Utility-Based Agent
