@@ -289,58 +289,16 @@ async def main():
         
         total_time = email_summary['total_time'] + maze_summary['total_time']
         
-        print(f"\n[COMBINED] COMBINED RESULTS:")
+        print(f"\nCOMBINED RESULTS:")
         print(f"   Total Tasks: {total_tasks}")
         print(f"   Overall Success Rate: {overall_success_rate:.1%} ({total_successful}/{total_tasks})")
         print(f"   Weighted Average Score: {weighted_avg_score:.3f}")
         print(f"   Total Evaluation Time: {total_time:.1f}s ({total_time/60:.1f} minutes)")
         
-        # Performance insights
-        print(f"\n[INSIGHTS] PERFORMANCE INSIGHTS:")
-        
-        if email_summary['success_rate'] > 0.8:
-            print("[GOOD] Strong performance on email classification tasks")
-        elif email_summary['success_rate'] > 0.6:
-            print("[MODERATE] Moderate performance on email classification tasks")
-        else:
-            print("[WEAK] Weak performance on email classification tasks")
-            
-        if maze_summary['success_rate'] > 0.8:
-            print("[GOOD] Strong performance on maze navigation tasks")
-        elif maze_summary['success_rate'] > 0.6:
-            print("[MODERATE] Moderate performance on maze navigation tasks")
-        else:
-            print("[WEAK] Weak performance on maze navigation tasks")
-            
-        if maze_summary['overall_efficiency'] > 0.8:
-            print("[GOOD] Highly efficient maze navigation")
-        elif maze_summary['overall_efficiency'] > 0.6:
-            print("[MODERATE] Moderately efficient maze navigation")
-        else:
-            print("[POOR] Inefficient maze navigation")
-        
-        # Recommendations
-        print(f"\n[RECOMMENDATIONS] RECOMMENDATIONS:")
-        
-        if email_summary['success_rate'] < 0.8:
-            print("[EMAIL] Email: Consider tuning prompts for better classification")
-            print("   - Review failed cases for pattern analysis")
-            print("   - May need better handling of mixed-signal emails")
-        
-        if maze_summary['success_rate'] < 0.8:
-            print("[MAZE] Maze: Consider optimizing spatial reasoning")
-            print("   - Model may struggle with memory management")
-            print("   - Complex mazes may exceed model capabilities")
-        
-        if maze_summary['overall_efficiency'] < 0.7:
-            print("[EFFICIENCY] Efficiency: Model takes suboptimal paths")
-            print("   - May benefit from better exploration strategies")
-            print("   - Could improve with enhanced prompting")
-        
-        print(f"\n[COMPLETE] Evaluation complete! Model tested on {total_tasks} tasks across 2 agent types.")
+        print(f"\nEvaluation complete! Model tested on {total_tasks} tasks across 2 agent types.")
         
     except Exception as e:
-        print(f"[ERROR] Error during evaluation: {e}")
+        print(f"Error during evaluation: {e}")
         import traceback
         traceback.print_exc()
 
