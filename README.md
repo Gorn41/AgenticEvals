@@ -37,7 +37,7 @@ export GOOGLE_API_KEY="your-gemini-api-key"
 ### 3. Run Example
 
 ```bash
-python3 quick_start.py
+python3 test_gemini_pro_full.py
 ```
 
 ## Usage
