@@ -250,7 +250,7 @@ async def main():
     try:
         # Load Gemini Pro 2.5 model
         print(f"\n Loading Gemini Pro 2.5...")
-        model = load_gemini("gemini-2.5-pro", api_key=api_key, temperature=0.3)
+        model = load_gemini("gemini-2.5-Pro", api_key=api_key, temperature=0.3)
         print(f"Model loaded: {model.model_name}")
         
         # Test email tasks

@@ -6,9 +6,11 @@ Benchmark implementations for AgenticEvals.
 from . import simple_reflex_example
 from . import simple_reflex_email
 from . import model_based_maze
+from . import hotel_booking
 
 __all__ = [
     "simple_reflex_example",
     "simple_reflex_email",
-    "model_based_maze"
+    "model_based_maze",
+    "hotel_booking"
 ] 

@@ -131,10 +131,10 @@ This is particularly problematic because:
 - Our sales team has been preparing for this meeting for weeks
 
 I've already tried:
-✓ Clearing cache and cookies
-✓ Testing with different API keys
-✓ Reducing our request frequency
-✓ Checking our integration logs
+- Clearing cache and cookies
+- Testing with different API keys  
+- Reducing our request frequency
+- Checking our integration logs
 
 What I need from you:
 1. Help troubleshooting the API connection issues

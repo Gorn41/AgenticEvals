@@ -84,14 +84,45 @@ class GeminiModel(BaseModel):
             
             latency = time.time() - start_time
             
+            # Check if response was blocked or has no text
+            response_text = ""
+            finish_reason = None
+            
+            # Extract finish_reason properly from candidates
+            try:
+                if hasattr(response, 'candidates') and response.candidates:
+                    finish_reason = response.candidates[0].finish_reason
+                else:
+                    finish_reason = getattr(response, "finish_reason", None)
+            except (AttributeError, IndexError):
+                finish_reason = None
+            
+            try:
+                response_text = response.text
+            except (AttributeError, ValueError) as e:
+                # Handle cases where response.text is not available
+                logger.warning(f"Response text not available, finish_reason: {finish_reason}, error: {e}")
+                if finish_reason == 2:  # MAX_TOKENS
+                    response_text = "RESPONSE_TRUNCATED_MAX_TOKENS"
+                elif finish_reason == 3:  # SAFETY
+                    response_text = "RESPONSE_BLOCKED_BY_SAFETY_FILTER"
+                elif finish_reason == 4:  # RECITATION
+                    response_text = "RESPONSE_BLOCKED_BY_RECITATION_FILTER"
+                elif finish_reason == 5:  # OTHER
+                    response_text = "RESPONSE_BLOCKED_OTHER_REASON"
+                else:
+                    response_text = "RESPONSE_TEXT_UNAVAILABLE"
+            
             return ModelResponse(
-                text=response.text,
+                text=response_text,
                 tokens_used=self._get_token_count(response),
                 latency=latency,
                 metadata={
                     "model": self.model_name,
-                    "finish_reason": getattr(response, "finish_reason", None),
+                    "finish_reason": finish_reason,
                     "safety_ratings": getattr(response, "safety_ratings", []),
+                    "blocked": response_text.startswith("RESPONSE_BLOCKED"),
+                    "truncated": response_text.startswith("RESPONSE_TRUNCATED"),
                 }
             )
             
@@ -107,14 +138,45 @@ class GeminiModel(BaseModel):
             response = self._generate_sync_internal(prompt)
             latency = time.time() - start_time
             
+            # Check if response was blocked or has no text
+            response_text = ""
+            finish_reason = None
+            
+            # Extract finish_reason properly from candidates
+            try:
+                if hasattr(response, 'candidates') and response.candidates:
+                    finish_reason = response.candidates[0].finish_reason
+                else:
+                    finish_reason = getattr(response, "finish_reason", None)
+            except (AttributeError, IndexError):
+                finish_reason = None
+            
+            try:
+                response_text = response.text
+            except (AttributeError, ValueError) as e:
+                # Handle cases where response.text is not available
+                logger.warning(f"Response text not available, finish_reason: {finish_reason}, error: {e}")
+                if finish_reason == 2:  # MAX_TOKENS
+                    response_text = "RESPONSE_TRUNCATED_MAX_TOKENS"
+                elif finish_reason == 3:  # SAFETY
+                    response_text = "RESPONSE_BLOCKED_BY_SAFETY_FILTER"
+                elif finish_reason == 4:  # RECITATION
+                    response_text = "RESPONSE_BLOCKED_BY_RECITATION_FILTER"
+                elif finish_reason == 5:  # OTHER
+                    response_text = "RESPONSE_BLOCKED_OTHER_REASON"
+                else:
+                    response_text = "RESPONSE_TEXT_UNAVAILABLE"
+            
             return ModelResponse(
-                text=response.text,
+                text=response_text,
                 tokens_used=self._get_token_count(response),
                 latency=latency,
                 metadata={
                     "model": self.model_name,
-                    "finish_reason": getattr(response, "finish_reason", None),
+                    "finish_reason": finish_reason,
                     "safety_ratings": getattr(response, "safety_ratings", []),
+                    "blocked": response_text.startswith("RESPONSE_BLOCKED"),
+                    "truncated": response_text.startswith("RESPONSE_TRUNCATED"),
                 }
             )
             
