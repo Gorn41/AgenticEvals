@@ -264,8 +264,8 @@ if __name__ == "__main__":
             print("  GOOGLE_API_KEY=your_actual_api_key")
             print("  GEMINI_API_KEY=your_actual_api_key")
             print("\nTo get a Gemini API key:")
-            print("• Go to https://ai.google.dev/")
-            print("• Create a new API key")
+            print(" Go to https://ai.google.dev/")
+            print(" Create a new API key")
             sys.exit(1)
             
         print(" Found Gemini API key, proceeding with test...")
