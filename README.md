@@ -37,7 +37,7 @@ export GOOGLE_API_KEY="your-gemini-api-key"
 ### 3. Run Example
 
 ```bash
-python3 test_gemini_pro_full.py
+python3 test_gemma_full.py
 ```
 
 ## Usage
@@ -70,15 +70,15 @@ for agent_type, benchmark_list in benchmarks.items():
 ```
 
 ### Custom Model Configuration
+Use the `load_model_from_name` function to instantiate your model. The framework will automatically use the API key from the environment.
 
-```python
-model = load_gemini(
-    "gemini-2.5-flash",
-    temperature=0.1,
-    max_tokens=1000,
-    top_p=0.9
-)
-```
+    ```python
+    from src.models.loader import load_model_from_name
+    
+    # The API key is loaded automatically from the environment
+    model = load_model_from_name("gemma-3-4b-it")
+    ```
+This approach simplifies model configuration by abstracting away the details of API key management.
 
 ## Project Structure
 
@@ -97,6 +97,7 @@ AgenticEvals/
 
 - **Gemini 2.5 Pro** - Most capable model
 - **Gemini 2.5 Flash** - Fast and efficient
+- **Gemma 3** - Open Source Model
 
 Easy to extend with new model providers.
 
@@ -145,22 +146,6 @@ benchmarks:
   timeout_seconds: 30
   max_retries: 3
   collect_detailed_metrics: true
-```
-
-## Testing
-
-```bash
-# Run all tests
-python3 run_tests.py
-
-# Unit tests only
-python3 run_tests.py --unit
-
-# Integration tests (requires API key)  
-python3 run_tests.py --integration
-
-# With coverage
-python3 run_tests.py --coverage
 ```
 
 ## Development
