@@ -462,5 +462,5 @@ CLASSIFICATION:"""
             "cleaned_response": cleaned_response,
             "exact_match": cleaned_response == expected.replace("_", "").replace(" ", ""),
             "response_latency": model_response.latency,
-            "tokens_used": model_response.total_tokens,
+            "output_tokens": model_response.completion_tokens if model_response else 0,
         } 

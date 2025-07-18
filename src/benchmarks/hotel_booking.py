@@ -6,7 +6,7 @@ client requests and plan systematic searches to cover the required search space.
 
 The model must:
 1. Parse natural language client stories to identify hard constraints
-2. Plan searches that cover the minimum required (location × date) combinations  
+2. Plan searches that cover the minimum required combinations  
 3. Use only simple search interface: location, checkin_date, checkout_date, guests
 
 No actual hotel searching is performed - only search space planning is evaluated.
@@ -611,7 +611,7 @@ OUTPUT THE SEARCH STEPS ONLY:"""
                 "expected_searches": score_breakdown["expected_searches"],
                 "actual_searches": score_breakdown["actual_searches"],
                 "searches_planned": len(parsed_plan.steps),
-                "execution_time": execution_time,
+                "output_tokens": model_response.completion_tokens if model_response else 0,
                 "constraint_inference_success": score_breakdown["coverage"] > 0.0,
                 "planning_quality": "perfect" if final_score >= 0.95 else 
                                   "good" if final_score >= 0.7 else

@@ -83,9 +83,9 @@ def test_setup():
     """Test if the setup works by trying to load the configuration."""
     try:
         # Add src to path for testing
-        sys.path.insert(0, str(Path("src")))
+        sys.path.insert(0, str(Path("src").resolve()))
         
-        from utils.config import get_config_manager
+        from src.utils.config import get_config_manager
         
         config_manager = get_config_manager()
         api_key = config_manager.config.api_keys.get("google")

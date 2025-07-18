@@ -325,14 +325,15 @@ Your move:"""
         success = False
         path_taken = [maze.start_pos]
         conversation_history = []
+        delays_applied = 0
         
         try:
             # Initial move
             initial_response = await model.generate(task.prompt)
             conversation_history.append(("initial", task.prompt, initial_response.text))
             
-            if initial_response.total_tokens:
-                state.total_tokens_used += initial_response.total_tokens
+            if initial_response.completion_tokens:
+                state.total_tokens_used += initial_response.completion_tokens
             
             # Parse and apply first move
             move = self._parse_move(initial_response.text)
@@ -350,13 +351,17 @@ Your move:"""
             
             # Continue navigation until goal reached or max moves
             while not success and state.move_count < max_moves:
+                # Add 15s delay to respect rate limits
+                await asyncio.sleep(15)
+                delays_applied += 1
+                
                 # Create continuation prompt
                 continuation_prompt = self._create_continuation_prompt(maze, state, move)
                 response = await model.generate(continuation_prompt)
                 conversation_history.append(("continuation", continuation_prompt, response.text))
                 
-                if response.total_tokens:
-                    state.total_tokens_used += response.total_tokens
+                if response.completion_tokens:
+                    state.total_tokens_used += response.completion_tokens
                 
                 # Parse and apply move
                 move = self._parse_move(response.text)
@@ -376,10 +381,8 @@ Your move:"""
                     # Invalid move - count it but don't change position
                     state.move_count += 1
                 
-                # Add small delay to respect rate limits
-                await asyncio.sleep(0.1)
-            
-            execution_time = time.time() - start_time
+            total_execution_time = time.time() - start_time
+            net_execution_time = total_execution_time - (delays_applied * 15)
             
             # Calculate score
             score = self.calculate_score(task, success, state, path_taken)
@@ -398,7 +401,7 @@ Your move:"""
                     text=f"Goal reached: {success}, Moves: {state.move_count}, Path: {path_taken}",
                     total_tokens=state.total_tokens_used
                 ),
-                execution_time=execution_time,
+                execution_time=net_execution_time,
                 metadata={
                     **task.metadata,
                     "path_taken": path_taken,
@@ -409,7 +412,8 @@ Your move:"""
             )
             
         except Exception as e:
-            execution_time = time.time() - start_time
+            total_execution_time = time.time() - start_time
+            net_execution_time = total_execution_time - (delays_applied * 15)
             logger.error(f"Error evaluating maze task {task.task_id}: {e}")
             
             return TaskResult(
@@ -419,7 +423,7 @@ Your move:"""
                 success=False,
                 score=0.0,
                 metrics={},
-                execution_time=execution_time,
+                execution_time=net_execution_time,
                 error_message=str(e),
                 metadata=task.metadata
             )
@@ -473,7 +477,7 @@ Your move:"""
             "unique_cells_visited": unique_cells,
             "cells_revisited": revisit_count,
             "path_efficiency": unique_cells / max(total_moves, 1),
-            "total_tokens_used": state.total_tokens_used,
+            "output_tokens": state.total_tokens_used,
             "avg_tokens_per_move": avg_tokens_per_move,
             "total_conversation_turns": total_prompts,
             "memory_footprint_per_move": avg_tokens_per_move,

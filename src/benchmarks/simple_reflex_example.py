@@ -213,5 +213,5 @@ Your response:"""
             "first_word": first_word,
             "exact_match": response_text.lower().strip() == expected,
             "response_latency": model_response.latency,
-            "tokens_used": model_response.total_tokens,
+            "output_tokens": model_response.completion_tokens if model_response else 0,
         } 

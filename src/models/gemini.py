@@ -7,8 +7,8 @@ import asyncio
 from typing import List, Dict, Any, Optional
 
 try:
-    import google.generativeai as genai
-    from google.generativeai.types import HarmCategory, HarmBlockThreshold
+    from google import genai
+    from google.genai.types import GenerateContentConfig
     GENAI_AVAILABLE = True
 except ImportError:
     GENAI_AVAILABLE = False
@@ -18,116 +18,66 @@ from ..utils.logging import get_logger
 
 logger = get_logger(__name__)
 
-
 class GeminiModel(BaseModel):
-    """Gemini model implementation using Google's Generative AI API."""
+    """Gemini model implementation using Google's Gen AI SDK."""
     
     def __init__(self, config: ModelConfig):
         """Initialize Gemini model."""
         super().__init__(config)
         
+        if not GENAI_AVAILABLE:
+            raise ImportError("google-genai is not installed. Please install it with `pip install google-genai`")
+        
         if not config.api_key:
             raise ValueError("API key is required for Gemini model")
         
-        # Configure the API
-        genai.configure(api_key=config.api_key)
+        # Create client instead of configuring globally
+        self.client = genai.Client(api_key=config.api_key)
         
-        # Initialize the model
-        generation_config = self._build_generation_config()
-        safety_settings = self._build_safety_settings()
-        
-        self.model = genai.GenerativeModel(
-            model_name=config.model_name,
-            generation_config=generation_config,
-            safety_settings=safety_settings
-        )
+        # Store generation config for later use
+        self.generation_config = self._build_generation_config()
         
         logger.info(f"Initialized Gemini model: {config.model_name}")
     
-    def _build_generation_config(self) -> genai.GenerationConfig:
+    def _build_generation_config(self) -> GenerateContentConfig:
         """Build generation configuration from model config."""
         config_dict = {
             "temperature": self.config.temperature,
+            "max_output_tokens": self.config.max_tokens,
+            "top_p": self.config.top_p,
+            "top_k": self.config.top_k,
+            "stop_sequences": self.config.stop_sequences,
         }
         
-        if self.config.max_tokens:
-            config_dict["max_output_tokens"] = self.config.max_tokens
-        if self.config.top_p:
-            config_dict["top_p"] = self.config.top_p
-        if self.config.top_k:
-            config_dict["top_k"] = self.config.top_k
-        if self.config.stop_sequences:
-            config_dict["stop_sequences"] = self.config.stop_sequences
+        # Filter out None values
+        filtered_config = {k: v for k, v in config_dict.items() if v is not None}
         
-        # Add any additional parameters
-        config_dict.update(self.config.additional_params)
-        
-        return genai.GenerationConfig(**config_dict)
-    
-    def _build_safety_settings(self) -> Dict[HarmCategory, HarmBlockThreshold]:
-        """Build safety settings for Gemini."""
-        # Use permissive settings for benchmarking
-        return {
-            HarmCategory.HARM_CATEGORY_HATE_SPEECH: HarmBlockThreshold.BLOCK_NONE,
-            HarmCategory.HARM_CATEGORY_HARASSMENT: HarmBlockThreshold.BLOCK_NONE,
-            HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT: HarmBlockThreshold.BLOCK_NONE,
-            HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT: HarmBlockThreshold.BLOCK_NONE,
-        }
+        return GenerateContentConfig(**filtered_config)
     
     async def generate(self, prompt: str, **kwargs) -> ModelResponse:
         """Generate a response asynchronously."""
         start_time = time.time()
         
         try:
-            # Gemini doesn't have native async support, so we use asyncio.to_thread
-            response = await asyncio.to_thread(self._generate_sync_internal, prompt)
-            
+            response = await self.client.aio.models.generate_content(
+                model=self.config.model_name,
+                contents=prompt,
+                config=self.generation_config
+            )
             latency = time.time() - start_time
             
-            # Check if response was blocked or has no text
-            response_text = ""
-            finish_reason = None
-            
-            # Extract finish_reason properly from candidates
-            try:
-                if hasattr(response, 'candidates') and response.candidates:
-                    finish_reason = response.candidates[0].finish_reason
-                else:
-                    finish_reason = getattr(response, "finish_reason", None)
-            except (AttributeError, IndexError):
-                finish_reason = None
-            
-            try:
-                response_text = response.text
-            except (AttributeError, ValueError) as e:
-                # Handle cases where response.text is not available
-                logger.warning(f"Response text not available, finish_reason: {finish_reason}, error: {e}")
-                if finish_reason == 2:  # MAX_TOKENS
-                    response_text = "RESPONSE_TRUNCATED_MAX_TOKENS"
-                elif finish_reason == 3:  # SAFETY
-                    response_text = "RESPONSE_BLOCKED_BY_SAFETY_FILTER"
-                elif finish_reason == 4:  # RECITATION
-                    response_text = "RESPONSE_BLOCKED_BY_RECITATION_FILTER"
-                elif finish_reason == 5:  # OTHER
-                    response_text = "RESPONSE_BLOCKED_OTHER_REASON"
-                else:
-                    response_text = "RESPONSE_TEXT_UNAVAILABLE"
-            
-            return ModelResponse(
-                text=response_text,
-                tokens_used=self._get_token_count(response),
-                latency=latency,
-                metadata={
-                    "model": self.model_name,
-                    "finish_reason": finish_reason,
-                    "safety_ratings": getattr(response, "safety_ratings", []),
-                    "blocked": response_text.startswith("RESPONSE_BLOCKED"),
-                    "truncated": response_text.startswith("RESPONSE_TRUNCATED"),
-                }
-            )
-            
+            # Manually count completion tokens
+            completion_tokens = None
+            if hasattr(response, 'text'):
+                completion_tokens = (await self.client.aio.models.count_tokens(
+                    model=self.config.model_name,
+                    contents=response.text
+                )).total_tokens
+
+            return self._create_model_response(response, latency, completion_tokens_override=completion_tokens)
         except Exception as e:
             logger.error(f"Error generating response with Gemini: {e}")
+            logger.debug(f"Response object that caused error: {response}")
             raise
     
     def generate_sync(self, prompt: str, **kwargs) -> ModelResponse:
@@ -135,86 +85,80 @@ class GeminiModel(BaseModel):
         start_time = time.time()
         
         try:
-            response = self._generate_sync_internal(prompt)
-            latency = time.time() - start_time
-            
-            # Check if response was blocked or has no text
-            response_text = ""
-            finish_reason = None
-            
-            # Extract finish_reason properly from candidates
-            try:
-                if hasattr(response, 'candidates') and response.candidates:
-                    finish_reason = response.candidates[0].finish_reason
-                else:
-                    finish_reason = getattr(response, "finish_reason", None)
-            except (AttributeError, IndexError):
-                finish_reason = None
-            
-            try:
-                response_text = response.text
-            except (AttributeError, ValueError) as e:
-                # Handle cases where response.text is not available
-                logger.warning(f"Response text not available, finish_reason: {finish_reason}, error: {e}")
-                if finish_reason == 2:  # MAX_TOKENS
-                    response_text = "RESPONSE_TRUNCATED_MAX_TOKENS"
-                elif finish_reason == 3:  # SAFETY
-                    response_text = "RESPONSE_BLOCKED_BY_SAFETY_FILTER"
-                elif finish_reason == 4:  # RECITATION
-                    response_text = "RESPONSE_BLOCKED_BY_RECITATION_FILTER"
-                elif finish_reason == 5:  # OTHER
-                    response_text = "RESPONSE_BLOCKED_OTHER_REASON"
-                else:
-                    response_text = "RESPONSE_TEXT_UNAVAILABLE"
-            
-            return ModelResponse(
-                text=response_text,
-                tokens_used=self._get_token_count(response),
-                latency=latency,
-                metadata={
-                    "model": self.model_name,
-                    "finish_reason": finish_reason,
-                    "safety_ratings": getattr(response, "safety_ratings", []),
-                    "blocked": response_text.startswith("RESPONSE_BLOCKED"),
-                    "truncated": response_text.startswith("RESPONSE_TRUNCATED"),
-                }
+            response = self.client.models.generate_content(
+                model=self.config.model_name,
+                contents=prompt,
+                config=self.generation_config
             )
-            
+            latency = time.time() - start_time
+
+            # Manually count completion tokens
+            completion_tokens = None
+            if hasattr(response, 'text'):
+                completion_tokens = self.client.models.count_tokens(
+                    model=self.config.model_name,
+                    contents=response.text
+                ).total_tokens
+
+            return self._create_model_response(response, latency, completion_tokens_override=completion_tokens)
         except Exception as e:
             logger.error(f"Error generating response with Gemini: {e}")
             raise
-    
-    def _generate_sync_internal(self, prompt: str):
-        """Internal synchronous generation method."""
-        return self.model.generate_content(prompt)
-    
-    async def generate_batch(self, prompts: List[str], **kwargs) -> List[ModelResponse]:
-        """Generate responses for multiple prompts."""
-        # Gemini doesn't support native batch processing, so we process sequentially
-        # with some delay to respect rate limits
-        responses = []
-        
-        for i, prompt in enumerate(prompts):
-            if i > 0:
-                # Add small delay between requests to respect rate limits
-                await asyncio.sleep(0.1)
-            
-            response = await self.generate(prompt, **kwargs)
-            responses.append(response)
-        
-        return responses
-    
-    def _get_token_count(self, response) -> Optional[int]:
-        """Extract token count from response if available."""
+
+    def _get_token_counts(self, response: Any) -> tuple[Optional[int], Optional[int], Optional[int]]:
+        """Extract token counts from the response metadata."""
         try:
-            if hasattr(response, "usage_metadata"):
-                return getattr(response.usage_metadata, "total_token_count", None)
-            return None
-        except:
-            return None
+            if hasattr(response, 'usage_metadata'):
+                logger.debug(f"Full response object for token count extraction: {response}")
+                prompt_tokens = response.usage_metadata.prompt_token_count
+                total_tokens = response.usage_metadata.total_token_count
+                
+                if hasattr(response.usage_metadata, 'candidates_token_count'):
+                    completion_tokens = response.usage_metadata.candidates_token_count
+                else:
+                    # Calculate completion tokens if not directly available
+                    completion_tokens = total_tokens - prompt_tokens
+                    
+                return prompt_tokens, completion_tokens, total_tokens
+        except (AttributeError, TypeError, KeyError) as e:
+            logger.warning(f"Could not extract token counts from response: {e}")
+            logger.debug(f"Response object that caused error: {response}")
+        return None, None, None
+
+    def _create_model_response(self, response, latency: float, completion_tokens_override: Optional[int] = None) -> ModelResponse:
+        """Create a ModelResponse object from the raw Gemini response."""
+        logger.debug(f"Full response object for token count extraction: {response}")
+        response_text = response.text if hasattr(response, 'text') else "RESPONSE_TEXT_UNAVAILABLE"
+        
+        # Extract token usage
+        prompt_tokens, completion_tokens, total_tokens = self._get_token_counts(response)
+
+        if completion_tokens_override is not None:
+            completion_tokens = completion_tokens_override
+            if prompt_tokens is not None:
+                total_tokens = prompt_tokens + completion_tokens
+        
+        return ModelResponse(
+            text=response_text,
+            prompt_tokens=prompt_tokens,
+            completion_tokens=completion_tokens,
+            total_tokens=total_tokens,
+            latency=latency,
+            finish_reason=None,  # Extract if available in new SDK
+            metadata={
+                "model": self.config.model_name,
+                "blocked": False,  # Update based on new SDK structure
+                "truncated": False,  # Update based on new SDK structure
+            }
+        )
+
+    async def generate_batch(self, prompts: List[str], **kwargs) -> List[ModelResponse]:
+        """Generate responses for multiple prompts concurrently."""
+        tasks = [self.generate(prompt, **kwargs) for prompt in prompts]
+        return await asyncio.gather(*tasks)
     
     def supports_batch(self) -> bool:
-        """Gemini supports batch through sequential processing."""
+        """Indicates that the model supports concurrent batch processing."""
         return True
     
     def get_model_info(self) -> Dict[str, Any]:
@@ -223,7 +167,5 @@ class GeminiModel(BaseModel):
         base_info.update({
             "provider": "Google",
             "model_type": "Gemini",
-            "supports_streaming": False,
-            "supports_function_calling": True,
         })
         return base_info 

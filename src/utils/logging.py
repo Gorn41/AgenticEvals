@@ -28,33 +28,33 @@ class LoggerAdapter:
             self.logger = logging.getLogger(name)
     
     def debug(self, message: str, **kwargs):
-        if self.use_loguru:
+        if self.use_loguru and self.logger:
             self.logger.debug(f"[{self.name}] {message}", **kwargs)
-        else:
+        elif not self.use_loguru and self.logger:
             self.logger.debug(message, **kwargs)
     
     def info(self, message: str, **kwargs):
-        if self.use_loguru:
+        if self.use_loguru and self.logger:
             self.logger.info(f"[{self.name}] {message}", **kwargs)
-        else:
+        elif not self.use_loguru and self.logger:
             self.logger.info(message, **kwargs)
     
     def warning(self, message: str, **kwargs):
-        if self.use_loguru:
+        if self.use_loguru and self.logger:
             self.logger.warning(f"[{self.name}] {message}", **kwargs)
-        else:
+        elif not self.use_loguru and self.logger:
             self.logger.warning(message, **kwargs)
     
     def error(self, message: str, **kwargs):
-        if self.use_loguru:
+        if self.use_loguru and self.logger:
             self.logger.error(f"[{self.name}] {message}", **kwargs)
-        else:
+        elif not self.use_loguru and self.logger:
             self.logger.error(message, **kwargs)
     
     def critical(self, message: str, **kwargs):
-        if self.use_loguru:
+        if self.use_loguru and self.logger:
             self.logger.critical(f"[{self.name}] {message}", **kwargs)
-        else:
+        elif not self.use_loguru and self.logger:
             self.logger.critical(message, **kwargs)
 
 
@@ -63,7 +63,7 @@ def setup_logging(log_level: str = "INFO",
                   use_loguru: bool = True) -> None:
     """Set up logging configuration."""
     
-    if use_loguru and LOGURU_AVAILABLE:
+    if use_loguru and LOGURU_AVAILABLE and loguru_logger:
         # Configure loguru
         loguru_logger.remove()  # Remove default handler
         
@@ -101,9 +101,14 @@ def setup_logging(log_level: str = "INFO",
         )
 
 
-def get_logger(name: str) -> LoggerAdapter:
-    """Get a logger instance for the given name."""
-    return LoggerAdapter(name, use_loguru=LOGURU_AVAILABLE)
+def get_logger(name: str, level: str = "INFO") -> LoggerAdapter:
+    """Get a logger instance with a custom adapter."""
+    
+    use_loguru = LOGURU_AVAILABLE
+    setup_logging(log_level=level, use_loguru=use_loguru)
+    
+    # Return the adapter
+    return LoggerAdapter(name, use_loguru=use_loguru)
 
 
 # Set up default logging

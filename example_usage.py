@@ -11,14 +11,18 @@ import sys
 from pathlib import Path
 
 # Add src to Python path
-src_path = Path(__file__).parent / "src"
-sys.path.insert(0, str(src_path))
+# This allows us to import from the src directory
+project_root = Path(__file__).resolve().parent
+src_path = project_root / "src"
+if str(src_path) not in sys.path:
+    sys.path.insert(0, str(src_path))
+
 
 try:
-    from models.loader import load_gemini, get_available_models
-    from benchmark.loader import load_benchmark, get_available_benchmarks
-    from utils.config import get_config_manager
-    from utils.logging import get_logger
+    from src.models.loader import ModelLoader, load_gemini
+    from src.benchmark.loader import load_benchmark, get_available_benchmarks
+    from src.utils.config import get_config_manager
+    from src.utils.logging import get_logger
 except ImportError as e:
     print(f"Import error: {e}")
     print("Make sure you're running this from the project root directory.")
@@ -52,7 +56,7 @@ async def main():
         
         # Show available models
         print("\nAvailable Models:")
-        available_models = get_available_models()
+        available_models = ModelLoader.get_available_models()
         for model_name in available_models:
             print(f"  - {model_name}")
         
@@ -116,10 +120,10 @@ async def main():
         print(f"Success Rate: {result.get_success_rate():.1%}")
         
         # Summary statistics
-        stats = result.get_summary_statistics()
-        print(f"Tasks Completed: {stats['total_tasks']}")
-        print(f"Successful Tasks: {stats['successful_tasks']}")
-        print(f"Failed Tasks: {stats['total_tasks'] - stats['successful_tasks']}")
+        stats = result.summary_metrics
+        print(f"Tasks Completed: {stats.get('num_tasks_completed', 0)}")
+        print(f"Successful Tasks: {stats.get('num_tasks_successful', 0)}")
+        print(f"Failed Tasks: {stats.get('num_tasks_failed', 0)}")
         print(f"Average Execution Time: {stats.get('average_execution_time', 0):.2f}s")
         
         # Show detailed task results
@@ -161,7 +165,7 @@ async def main():
         
     except Exception as e:
         print(f"\nERROR: Error during execution: {e}")
-        logger.exception("Error in example usage")
+        logger.error("Error in example usage", exc_info=True)
         print("\nTroubleshooting tips:")
         print("1. Check your API key is valid")
         print("2. Ensure you have internet connectivity")

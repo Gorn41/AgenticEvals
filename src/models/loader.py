@@ -24,9 +24,10 @@ class ModelLoader:
     # Registry of available model classes
     _model_registry: Dict[str, Type[BaseModel]] = {
         "gemini": GeminiModel,
-            "gemini-pro": GeminiModel,
-    "gemini-2.5-pro": GeminiModel,
-    "gemini-2.5-flash": GeminiModel,
+        "gemini-pro": GeminiModel,
+        "gemini-2.5-pro": GeminiModel,
+        "gemini-2.5-flash": GeminiModel,
+        "gemma-3-4b-it": GeminiModel,
     }
     
     @classmethod
@@ -99,9 +100,12 @@ class ModelLoader:
 
 
 # Convenience functions
-def load_gemini(model_name: str = "gemini-2.5-pro", **kwargs) -> GeminiModel:
+def load_gemini(model_name: str = "gemini-2.5-pro", **kwargs) -> "GeminiModel":
     """Convenience function to load a Gemini model."""
-    return ModelLoader.load_model(model_name, **kwargs)
+    model = ModelLoader.load_model(model_name, **kwargs)
+    if not isinstance(model, GeminiModel):
+        raise TypeError(f"Loaded model is not a GeminiModel instance, but {type(model)}")
+    return model
 
 
 def load_model_from_name(model_name: str, **kwargs) -> BaseModel:
