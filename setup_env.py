@@ -132,10 +132,6 @@ def main():
     print("\nStep 3: Testing configuration...")
     if test_setup():
         print("\nSetup completed successfully!")
-        print("\nNext steps:")
-        print("1. Run 'python3 quick_start.py' to test the system")
-        print("2. Run 'python3 example_usage.py' for a full demonstration")
-        print("3. Run 'python3 run_tests.py --unit' to run the test suite")
     else:
         print("\nSetup completed with warnings.")
         print("Check the .env file and make sure your Gemini API key is correct.")

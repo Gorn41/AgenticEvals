@@ -31,8 +31,8 @@ print(f"SUCCESS: API key found: {api_key[:8]}...")
 
 # Test imports
 try:
-    from models.loader import load_gemini
-    from benchmark.loader import load_benchmark
+    from src.models.loader import load_model_from_name
+    from src.benchmark.loader import load_benchmark
     print("SUCCESS: Imports successful")
 except ImportError as e:
     print(f"ERROR: Import error: {e}")
@@ -44,7 +44,7 @@ async def main():
     try:
         # Load model
         print("Loading model...")
-        model = load_gemini("gemini-2.5-flash", api_key=api_key, temperature=0.1)
+        model = load_model_from_name("gemini-2.5-flash", api_key=api_key, temperature=0.1)
         print(f"SUCCESS: Model loaded: {model.model_name}")
         
         # Test model
@@ -66,7 +66,8 @@ async def main():
             print(f"   Task: {task.name}")
             print(f"   Success: {result.success}")
             print(f"   Score: {result.score:.3f}")
-            print(f"   Response: '{result.model_response.text}'")
+            if result.model_response:
+                print(f"   Response: '{result.model_response.text}'")
         
         print("\nSUCCESS: Quick start successful!")
         print("\nNext steps:")
