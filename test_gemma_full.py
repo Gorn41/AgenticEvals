@@ -135,7 +135,7 @@ async def main(benchmarks_to_run: Optional[List[str]] = None):
     try:
         # Load Gemma model
         print(f"\n Loading gemma-3-4b-it...")
-        model = load_model_from_name("gemma-3-4b-it", api_key=api_key, temperature=0.3, max_tokens=15000)
+        model = load_model_from_name("gemma-3-4b-it", api_key=api_key, temperature=0.3, max_tokens=30000)
         print(f"Model loaded: {model.model_name}")
         
         # Get all available benchmarks

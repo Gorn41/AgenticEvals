@@ -28,6 +28,7 @@ class ModelLoader:
         "gemini-2.5-pro": GeminiModel,
         "gemini-2.5-flash": GeminiModel,
         "gemma-3-4b-it": GeminiModel,
+        "gemma-3-27b-it": GeminiModel,
     }
     
     @classmethod
