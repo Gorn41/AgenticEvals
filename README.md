@@ -7,7 +7,7 @@ A comprehensive benchmark for evaluating Large Language Models (LLMs) across fiv
 AgenticEvals provides a structured framework to evaluate how well LLMs can embody different agent architectures:
 
 - **Simple Reflex Agents**: Condition-action rules
-- **Model-Based Reflex Agents**: Internal state tracking  
+- **Model-Based Reflex Agents**: Internal state tracking
 - **Goal-Based Agents**: Goal-directed reasoning
 - **Utility-Based Agents**: Utility maximization
 - **Learning Agents**: Adaptive behavior
@@ -34,180 +34,152 @@ Or set manually:
 export GOOGLE_API_KEY="your-gemini-api-key"
 ```
 
-### 3. Run Example
+### 3. Run Evaluations
 
 ```bash
 python3 test_gemma_full.py
 ```
 
-## Usage
+## Advanced Usage
 
-### Basic Example
+### Plotting and Saving Results
 
-```python
-from models.loader import load_gemini
-from benchmark.loader import load_benchmark
+To generate plots and save detailed results to CSV files, use the `--plot` flag:
 
-# Load model
-model = load_gemini("gemini-2.5-pro")
-
-# Load and run benchmark
-benchmark = load_benchmark("traffic_light_simple")
-results = await benchmark.run_benchmark(model)
-
-print(f"Overall Score: {results.overall_score}")
-print(f"Success Rate: {results.get_success_rate()}")
+```bash
+python3 test_gemma_full.py --plot
 ```
 
-### Available Benchmarks
+This will produce the following files:
 
-```python
-from benchmark.loader import get_available_benchmarks
+- `benchmark_performance.png`: A plot showing performance metrics for each benchmark.
+- `agent_type_performance.png`: A plot showing aggregated performance metrics for each agent type.
+- `benchmark_results.csv`: A detailed breakdown of metrics for each task.
+- `agent_type_results.csv`: Aggregated metrics for each agent type.
 
-benchmarks = get_available_benchmarks()
-for agent_type, benchmark_list in benchmarks.items():
-    print(f"{agent_type}: {benchmark_list}")
+### Running Specific Benchmarks
+
+You can run one or more specific benchmarks by providing their names as arguments:
+
+```bash
+python3 test_gemma_full.py inventory_management simple_reflex_email
 ```
-
-### Custom Model Configuration
-Use the `load_model_from_name` function to instantiate your model. The framework will automatically use the API key from the environment.
-
-    ```python
-    from src.models.loader import load_model_from_name
-    
-    # The API key is loaded automatically from the environment
-    model = load_model_from_name("gemma-3-4b-it")
-    ```
-This approach simplifies model configuration by abstracting away the details of API key management.
 
 ## Project Structure
 
 ```
 AgenticEvals/
 ├── src/
-│   ├── models/           # Model implementations
-│   ├── benchmark/        # Benchmark framework
-│   ├── benchmarks/       # Specific benchmarks
-│   └── utils/           # Utilities
-├── tests/               # Test suite
-└── examples/           # Usage examples
+│   ├── benchmark/        # Core benchmark framework (base classes, loader, registry)
+│   ├── benchmarks/       # Implementations of specific benchmarks
+│   ├── models/           # Support for different language models
+│   └── utils/            # Utility functions (logging, config)
+├── tests/                # Test suite for the project
+├── test_gemma_full.py    # Main script for running evaluations
+└── requirements.txt      # Project dependencies
 ```
 
 ## Supported Models
 
-- **Gemini 2.5 Pro** - Most capable model
-- **Gemini 2.5 Flash** - Fast and efficient
-- **Gemma 3** - Open Source Model
+- **Google Gemini**: Support for various Gemini models.
+- **Gemma**: Open-source models from Google.
 
-Easy to extend with new model providers.
+The framework is designed to be easily extendable with new model providers.
 
 ## Benchmark Types
 
 ### Simple Reflex Agent
-- **Traffic Light**: Basic stimulus-response scenarios
-- **Email**: Long input-response scenarios
-- **Security Guard**: Pattern recognition tasks
+- **simple_reflex_example**: Basic stimulus-response scenarios.
+- **simple_reflex_email**: Email processing tasks.
 
-### Model-Based Reflex Agent  
-- **Navigation**: Partially observable state-aware Mulit-Step pathfinding
-- **Inventory Management**: Resource tracking
+### Model-Based Reflex Agent
+- **model_based_maze**: Navigation in a partially observable environment.
+- **inventory_management**: Inventory tracking and restocking.
 
 ### Goal-Based Agent
-- **Task Planning**: Multi-step goal achievement
-- **Booking**: Multi-step goal achievement
-- **Problem Solving**: Constraint satisfaction
+- **hotel_booking**: Multi-step planning and booking.
 
 ### Utility-Based Agent
-- **Resource Allocation**: Optimization under constraints
-- **Decision Making**: Trade-off scenarios
+- **task_scheduling**: Complex task scheduling with constraints.
 
 ### Learning Agent
-- **Adaptation**: Performance improvement over time
-- **Strategy Evolution**: Dynamic behavior modification
-
-## Configuration
-
-Create a `.env` file:
-```bash
-# Gemini API Configuration
-GOOGLE_API_KEY=your_gemini_api_key_here
-
-# Optional: Alternative key name
-GEMINI_API_KEY=your_gemini_api_key_here
-```
-
-Or use YAML configuration:
-```yaml
-# config.yaml
-models:
-  google: "your-gemini-api-key"
-
-benchmarks:
-  timeout_seconds: 30
-  max_retries: 3
-  collect_detailed_metrics: true
-```
+- **ball_drop**: Physics-based prediction task.
 
 ## Development
 
 ### Adding New Models
 
-1. Implement the `BaseModel` interface
-2. Register in `models/loader.py`
-3. Add tests in `tests/test_models/`
+1.  Create a new model class that inherits from `BaseModel`.
+2.  Implement the required methods for model interaction.
+3.  Update the model loader in `src/models/loader.py` to include the new model.
 
 ### Adding New Benchmarks
 
-1. Inherit from `BaseBenchmark`
-2. Register with `@register_benchmark` decorator
-3. Implement required methods
-4. Add tests in `tests/test_benchmarks/`
+1.  Create a new benchmark file in the `src/benchmarks/` directory.
+2.  Define a new benchmark class that inherits from `BaseBenchmark`.
+3.  Use the `@benchmark` decorator to register the new benchmark.
+4.  Implement the `get_tasks`, `evaluate_task`, and other methods from `BaseBenchmark`.
 
 Example:
 ```python
-from benchmark.base import BaseBenchmark
-from benchmark.registry import register_benchmark
+from src.benchmark.base import BaseBenchmark, Task, TaskResult
+from src.benchmark.registry import benchmark
+from src.models.base import BaseModel
 
-@register_benchmark("my_benchmark", AgentType.SIMPLE_REFLEX)
-class MyBenchmark(BaseBenchmark):
-    def get_tasks(self):
-        # Return list of tasks
+@benchmark(name="my_new_benchmark", agent_type=AgentType.SIMPLE_REFLEX)
+class MyNewBenchmark(BaseBenchmark):
+    def get_tasks(self) -> List[Task]:
+        # Return a list of Task objects
         pass
-    
-    async def evaluate_task(self, task, model):
-        # Evaluate single task
+
+    async def evaluate_task(self, task: Task, model: BaseModel) -> TaskResult:
+        # Evaluate a single task and return a TaskResult
         pass
-    
-    def calculate_score(self, task, model_response):
-        # Calculate task score
+
+    def calculate_score(self, task: Task, model_response: ModelResponse) -> float:
+        # Calculate the score for a single task
         pass
+```
+
+### Creating Custom Evaluation Scripts
+
+You can create new evaluation scripts to run different combinations of benchmarks or models. The `test_gemma_full.py` script serves as a good starting point.
+
+Here is a basic example of how to structure a new evaluation script:
+
+```python
+import asyncio
+from src.models.loader import load_model_from_name
+from src.benchmark.loader import load_benchmark
+
+async def main():
+    # Load your desired model
+    model = load_model_from_name("gemma-3-4b-it")
+
+    # Load the benchmark you want to run
+    benchmark = load_benchmark("simple_reflex_email")
+
+    # Run the benchmark and get the results
+    results = await benchmark.run_benchmark(model)
+
+    # Print the results
+    print(f"Overall Score: {results.overall_score}")
+    print(f"Success Rate: {results.get_success_rate()}")
+
+if __name__ == "__main__":
+    asyncio.run(main())
 ```
 
 ## Contributing
 
-1. Fork the repository
-2. Create a feature branch
-3. Add tests for new functionality
-4. Run the test suite
-5. Submit a pull request
+Contributions are welcome! Please follow these steps:
+
+1.  Fork the repository.
+2.  Create a new feature branch.
+3.  Add your changes and include tests.
+4.  Ensure all tests pass by running `pytest`.
+5.  Submit a pull request.
 
 ## License
 
-MIT License - see LICENSE file for details.
-
-## Citation
-
-If you use AgenticEvals in your research, please cite:
-
-```bibtex
-@software{agentic_evals,
-  title={AgenticEvals: A Benchmark for LLM Agent Capabilities Across the Five Foundational Agent Types},
-  author={Nattaput (Gorn) Namchittai},
-  year={2025},
-  url={https://github.com/Gorn41/AgenticEvals}
-}
-```
-
-## Support
-
-- Bug Reports: [GitHub Issues](https://github.com/Gorn41/AgenticEvals/issues)
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.

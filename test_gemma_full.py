@@ -8,6 +8,9 @@ import sys
 import asyncio
 import time
 import argparse
+import csv
+import numpy as np
+import matplotlib.pyplot as plt
 from pathlib import Path
 from typing import List, Dict, Any, Optional
 from dotenv import load_dotenv
@@ -62,6 +65,10 @@ async def test_benchmark(model, benchmark_name: str) -> Dict[str, Any]:
             if result.metrics:
                 print(f"   Output Tokens: {result.metrics.get('output_tokens', 'N/A')}")
             
+            if benchmark_name == "inventory_management" and "turn_scores" in result.metrics:
+                turn_scores_str = ", ".join([f"{s:.2f}" for s in result.metrics['turn_scores']])
+                print(f"   Turn Scores: [{turn_scores_str}]")
+
             if result.execution_time is not None:
                 print(f"   Execution Time: {result.execution_time:.2f}s")
             
@@ -114,7 +121,107 @@ async def test_benchmark(model, benchmark_name: str) -> Dict[str, Any]:
     
     return summary
 
-async def main(benchmarks_to_run: Optional[List[str]] = None):
+def plot_results(all_summaries: List[Dict[str, Any]], agent_type_results: Dict[str, Dict[str, Any]]):
+    """
+    Plot the results of the evaluation and save them to CSV files.
+    """
+    # Save per-task results
+    with open('benchmark_results.csv', 'w', newline='') as f:
+        writer = csv.writer(f)
+        writer.writerow(['Benchmark', 'Task Name', 'Success', 'Score', 'Execution Time', 'Output Tokens'])
+        for summary in all_summaries:
+            for result in summary['results']:
+                writer.writerow([
+                    summary['benchmark_name'],
+                    result.task_name,
+                    result.success,
+                    result.score,
+                    result.execution_time,
+                    result.metrics.get('output_tokens', 0)
+                ])
+    print("Benchmark results saved to benchmark_results.csv")
+
+    # Save aggregated agent type results
+    with open('agent_type_results.csv', 'w', newline='') as f:
+        writer = csv.writer(f)
+        writer.writerow(['Agent Type', 'Weighted Average Score', 'Average Execution Time', 'Average Output Tokens'])
+        for agent_type, data in agent_type_results.items():
+            avg_score = np.average(data['scores']) if data['scores'] else 0.0
+            avg_time = np.average(data['execution_times']) if data['execution_times'] else 0.0
+            avg_tokens = np.average(data['output_tokens']) if data['output_tokens'] else 0.0
+            writer.writerow([agent_type, avg_score, avg_time, avg_tokens])
+    print("Agent type results saved to agent_type_results.csv")
+
+    print("\nPlotting results...")
+    
+    # Plot for individual benchmark performance
+    fig1, axs1 = plt.subplots(2, 2, figsize=(15, 12))
+    fig1.suptitle('Benchmark Performance Analysis', fontsize=16)
+    
+    benchmarks = [s['benchmark_name'] for s in all_summaries]
+    
+    # Success Rate by Benchmark
+    success_rates = [s['success_rate'] for s in all_summaries]
+    axs1[0, 0].bar(benchmarks, success_rates, color='skyblue')
+    axs1[0, 0].set_title('Success Rate by Benchmark')
+    axs1[0, 0].set_ylabel('Success Rate')
+    axs1[0, 0].tick_params(axis='x', rotation=45)
+    
+    # Average Score by Benchmark
+    avg_scores = [s['average_score'] for s in all_summaries]
+    axs1[0, 1].bar(benchmarks, avg_scores, color='lightgreen')
+    axs1[0, 1].set_title('Average Score by Benchmark')
+    axs1[0, 1].set_ylabel('Average Score')
+    axs1[0, 1].tick_params(axis='x', rotation=45)
+    
+    # Average Time per Task
+    avg_times = [s['average_time'] for s in all_summaries]
+    axs1[1, 0].bar(benchmarks, avg_times, color='salmon')
+    axs1[1, 0].set_title('Average Time per Task (s)')
+    axs1[1, 0].set_ylabel('Seconds')
+    axs1[1, 0].tick_params(axis='x', rotation=45)
+    
+    # Average Output Tokens
+    avg_tokens = [s['average_output_tokens'] for s in all_summaries]
+    axs1[1, 1].bar(benchmarks, avg_tokens, color='gold')
+    axs1[1, 1].set_title('Average Output Tokens per Task')
+    axs1[1, 1].set_ylabel('Tokens')
+    axs1[1, 1].tick_params(axis='x', rotation=45)
+    
+    plt.tight_layout(rect=[0, 0.03, 1, 0.95])
+    plt.savefig('benchmark_performance.png')
+    print("Benchmark performance plot saved to benchmark_performance.png")
+    
+    # Plot for aggregated agent type performance
+    fig2, axs2 = plt.subplots(1, 3, figsize=(18, 6))
+    fig2.suptitle('Aggregated Performance by Agent Type', fontsize=16)
+    
+    agent_types = list(agent_type_results.keys())
+    
+    # Weighted Average Score by Agent Type
+    avg_scores_by_type = [np.average(d['scores']) for d in agent_type_results.values()]
+    axs2[0].bar(agent_types, avg_scores_by_type, color='cornflowerblue')
+    axs2[0].set_title('Weighted Average Score')
+    axs2[0].set_ylabel('Score')
+    
+    # Average Execution Time by Agent Type
+    avg_times_by_type = [np.average(d['execution_times']) for d in agent_type_results.values()]
+    axs2[1].bar(agent_types, avg_times_by_type, color='mediumseagreen')
+    axs2[1].set_title('Average Execution Time (s)')
+    axs2[1].set_ylabel('Seconds')
+    
+    # Average Output Tokens by Agent Type
+    avg_tokens_by_type = [np.average(d['output_tokens']) for d in agent_type_results.values()]
+    axs2[2].bar(agent_types, avg_tokens_by_type, color='lightcoral')
+    axs2[2].set_title('Average Output Tokens')
+    axs2[2].set_ylabel('Tokens')
+    
+    plt.tight_layout(rect=[0, 0.03, 1, 0.95])
+    plt.savefig('agent_type_performance.png')
+    print("Agent type performance plot saved to agent_type_performance.png")
+    plt.show()
+
+async def main(benchmarks_to_run: Optional[List[str]] = None, plot: bool = False):
     """Run comprehensive evaluation of Gemma on all benchmarks."""
     
     # Load environment variables
@@ -134,8 +241,8 @@ async def main(benchmarks_to_run: Optional[List[str]] = None):
     
     try:
         # Load Gemma model
-        print(f"\n Loading gemma-3-4b-it...")
-        model = load_model_from_name("gemma-3-4b-it", api_key=api_key, temperature=0.3, max_tokens=30000)
+        print(f"\n Loading gemma-3-27b-it...")
+        model = load_model_from_name("gemma-3-27b-it", api_key=api_key, temperature=0.3, max_tokens=30000)
         print(f"Model loaded: {model.model_name}")
         
         # Get all available benchmarks
@@ -182,7 +289,38 @@ async def main(benchmarks_to_run: Optional[List[str]] = None):
         print(f"   Weighted Average Score: {weighted_avg_score:.3f}")
         print(f"   Total Evaluation Time: {total_time:.1f}s ({total_time/60:.1f} minutes)")
         
+        # Aggregate results by agent type
+        agent_type_results = {}
+        for summary in all_summaries:
+            agent_type = summary['results'][0].agent_type.value
+            if agent_type not in agent_type_results:
+                agent_type_results[agent_type] = {
+                    'scores': [],
+                    'execution_times': [],
+                    'output_tokens': [],
+                    'num_tasks': 0
+                }
+            
+            agent_type_results[agent_type]['scores'].extend([r.score for r in summary['results']])
+            agent_type_results[agent_type]['execution_times'].extend([r.execution_time for r in summary['results'] if r.execution_time is not None])
+            agent_type_results[agent_type]['output_tokens'].extend([r.metrics.get('output_tokens', 0) for r in summary['results']])
+            agent_type_results[agent_type]['num_tasks'] += summary['total_tasks']
+            
+        print("\n AGGREGATE METRICS BY AGENT TYPE:")
+        print("=" * 70)
+        for agent_type, data in agent_type_results.items():
+            avg_score = np.average(data['scores'], weights=([1]*len(data['scores']))) if data['scores'] else 0.0
+            avg_time = np.average(data['execution_times']) if data['execution_times'] else 0.0
+            avg_tokens = np.average(data['output_tokens']) if data['output_tokens'] else 0.0
+            print(f"\n Agent Type: {agent_type}")
+            print(f"   - Weighted Average Score: {avg_score:.3f}")
+            print(f"   - Average Execution Time: {avg_time:.2f}s")
+            print(f"   - Average Output Tokens: {avg_tokens:.1f}")
+
         print(f"\nEvaluation complete! Model tested on {total_tasks} tasks across {len(all_summaries)} benchmarks.")
+        
+        if plot:
+            plot_results(all_summaries, agent_type_results)
         
     except Exception as e:
         print(f"An error occurred during evaluation: {e}")
@@ -196,6 +334,11 @@ if __name__ == "__main__":
         nargs="*",
         help="Optional: One or more benchmark names to run. If not provided, all benchmarks will be run."
     )
+    parser.add_argument(
+        "--plot",
+        action="store_true",
+        help="If set, plot the results."
+    )
     args = parser.parse_args()
 
-    asyncio.run(main(benchmarks_to_run=args.benchmarks or None)) 
+    asyncio.run(main(benchmarks_to_run=args.benchmarks or None, plot=args.plot)) 
