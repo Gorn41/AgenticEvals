@@ -69,6 +69,10 @@ async def test_benchmark(model, benchmark_name: str) -> Dict[str, Any]:
                 turn_scores_str = ", ".join([f"{s:.2f}" for s in result.metrics['turn_scores']])
                 print(f"   Turn Scores: [{turn_scores_str}]")
 
+            if benchmark_name == "shortest_path_planning" and "optimal_path" in result.metrics:
+                print(f"   Optimal Path: {result.metrics.get('optimal_path')} (Weight: {result.metrics.get('optimal_weight')})")
+                print(f"   Model Path:   {result.metrics.get('model_path', 'N/A')} (Weight: {result.metrics.get('model_path_weight', 'N/A')})")
+
             if result.execution_time is not None:
                 print(f"   Execution Time: {result.execution_time:.2f}s")
             
@@ -159,7 +163,7 @@ def plot_results(all_summaries: List[Dict[str, Any]], agent_type_results: Dict[s
     
     # Plot for individual benchmark performance
     fig1, axs1 = plt.subplots(1, 3, figsize=(18, 6))
-    fig1.suptitle('Benchmark Performance Analysis', fontsize=16)
+    fig1.suptitle(f'Benchmark Performance Analysis for {model_name}', fontsize=16)
     
     benchmarks = [s['benchmark_name'] for s in all_summaries]
     
@@ -191,7 +195,7 @@ def plot_results(all_summaries: List[Dict[str, Any]], agent_type_results: Dict[s
     
     # Plot for aggregated agent type performance
     fig2, axs2 = plt.subplots(1, 3, figsize=(18, 6))
-    fig2.suptitle('Aggregated Performance by Agent Type', fontsize=16)
+    fig2.suptitle(f'Aggregated Performance by Agent Type for {model_name}', fontsize=16)
     
     agent_types = list(agent_type_results.keys())
     
@@ -200,14 +204,14 @@ def plot_results(all_summaries: List[Dict[str, Any]], agent_type_results: Dict[s
     axs2[0].bar(agent_types, avg_scores_by_type, color='cornflowerblue')
     axs2[0].set_title('Weighted Average Score')
     axs2[0].set_ylabel('Score')
-    axs2[0].tick_params(axis='x', rotation=45, ha='right')
+    axs2[0].tick_params(axis='x', rotation=45)
     
     # Average Execution Time by Agent Type
     avg_times_by_type = [np.average(d['execution_times']) for d in agent_type_results.values()]
     axs2[1].bar(agent_types, avg_times_by_type, color='mediumseagreen')
     axs2[1].set_title('Average Execution Time (s)')
     axs2[1].set_ylabel('Seconds')
-    axs2[1].tick_params(axis='x', rotation=45, ha='right')
+    axs2[1].tick_params(axis='x', rotation=45)
     
     # Average Output Tokens by Agent Type
     avg_tokens_by_type = [np.average(d['output_tokens']) for d in agent_type_results.values()]
@@ -215,7 +219,7 @@ def plot_results(all_summaries: List[Dict[str, Any]], agent_type_results: Dict[s
     axs2[2].set_title('Average Output Tokens')
     axs2[2].set_ylabel('Tokens (log scale)')
     axs2[2].set_yscale('log')
-    axs2[2].tick_params(axis='x', rotation=45, ha='right')
+    axs2[2].tick_params(axis='x', rotation=45)
     
     plt.tight_layout(rect=[0, 0.03, 1, 0.95])
     plt.savefig(results_dir / f'agent_type_performance_{model_name}.png')
