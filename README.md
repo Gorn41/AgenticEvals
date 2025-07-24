@@ -37,32 +37,32 @@ export GOOGLE_API_KEY="your-gemini-api-key"
 ### 3. Run Evaluations
 
 ```bash
-python3 test_gemma_full.py
+python3 run.py --model gemma-3-27b-it
 ```
 
 ## Advanced Usage
 
 ### Plotting and Saving Results
 
-To generate plots and save detailed results to CSV files, use the `--plot` flag:
+To generate plots and save detailed results to CSV files, use the `--plot` flag. This will create a `results/<model_name>/` directory containing all output files.
 
 ```bash
-python3 test_gemma_full.py --plot
+python3 run.py --model gemma-3-27b-it --plot
 ```
 
-This will produce the following files:
+This will produce the following files inside the `results/gemma-3-27b-it/` directory:
 
-- `benchmark_performance.png`: A plot showing performance metrics for each benchmark.
-- `agent_type_performance.png`: A plot showing aggregated performance metrics for each agent type.
-- `benchmark_results.csv`: A detailed breakdown of metrics for each task.
-- `agent_type_results.csv`: Aggregated metrics for each agent type.
+- `benchmark_performance_gemma-3-27b-it.png`: A plot showing performance metrics for each benchmark.
+- `agent_type_performance_gemma-3-27b-it.png`: A plot showing aggregated performance metrics for each agent type.
+- `benchmark_results_gemma-3-27b-it.csv`: A detailed breakdown of metrics for each task.
+- `agent_type_results_gemma-3-27b-it.csv`: Aggregated metrics for each agent type.
 
 ### Running Specific Benchmarks
 
-You can run one or more specific benchmarks by providing their names as arguments:
+You can run one or more specific benchmarks by providing their names as arguments.
 
 ```bash
-python3 test_gemma_full.py inventory_management simple_reflex_email
+python3 run.py --model gemma-3-27b-it inventory_management simple_reflex_email --plot
 ```
 
 ## Project Structure
@@ -75,7 +75,7 @@ AgenticEvals/
 │   ├── models/           # Support for different language models
 │   └── utils/            # Utility functions (logging, config)
 ├── tests/                # Test suite for the project
-├── test_gemma_full.py    # Main script for running evaluations
+├── run.py          # Main script for running evaluations
 └── requirements.txt      # Project dependencies
 ```
 
@@ -143,7 +143,7 @@ class MyNewBenchmark(BaseBenchmark):
 
 ### Creating Custom Evaluation Scripts
 
-You can create new evaluation scripts to run different combinations of benchmarks or models. The `test_gemma_full.py` script serves as a good starting point.
+You can create new evaluation scripts to run different combinations of benchmarks or models. The `run.py` script serves as a good starting point.
 
 Here is a basic example of how to structure a new evaluation script:
 

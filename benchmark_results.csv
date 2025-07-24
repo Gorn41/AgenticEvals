@@ -1,0 +1,86 @@
+Benchmark,Task Name,Success,Score,Execution Time,Output Tokens
+traffic_light_simple,Traffic Light: red,True,1.0,0.8948690891265869,3
+traffic_light_simple,Traffic Light: green,True,1.0,1.133439064025879,3
+traffic_light_simple,Traffic Light: yellow,True,1.0,0.7040629386901855,3
+traffic_light_simple,Traffic Light: RED,True,1.0,0.7656691074371338,3
+traffic_light_simple,Traffic Light: GREEN,True,1.0,0.9149670600891113,3
+traffic_light_simple,Traffic Light: YELLOW,True,1.0,0.828463077545166,2
+traffic_light_simple,Traffic Edge Case: red light,True,1.0,0.7975001335144043,3
+traffic_light_simple,Traffic Edge Case: green signal,True,1.0,0.7161238193511963,3
+traffic_light_simple,Traffic Edge Case: amber,True,1.0,0.7381858825683594,3
+traffic_light_simple,Traffic Edge Case: flashing red,True,1.0,0.6851401329040527,3
+traffic_light_simple,Traffic Edge Case: flashing yellow,True,1.0,0.6759421825408936,2
+email_autoresponder_simple,Complex Email: billing_urgent_mix,True,1.0,0.8355791568756104,5
+email_autoresponder_simple,Complex Email: meeting_support_mix,True,1.0,0.8828070163726807,5
+email_autoresponder_simple,Complex Email: security_billing_mix,True,1.0,0.8613128662109375,5
+email_autoresponder_simple,Complex Email: support_meeting_mix,True,1.0,0.815382719039917,5
+email_autoresponder_simple,Complex Email: refund_urgent_mix,True,1.0,0.8407077789306641,5
+email_autoresponder_simple,Complex Email: complex_multi_category,True,1.0,0.842684268951416,5
+email_autoresponder_simple,Complex Email: password_billing_context,True,1.0,0.8886947631835938,5
+email_autoresponder_simple,Complex Email: support_calendar_priority,True,1.0,0.9742231369018555,4
+textual_maze_navigation,Maze Navigation: Simple 4x4,True,0.6,5.646521091461182,21
+textual_maze_navigation,Maze Navigation: Medium 5x5,False,0.0,19.082213878631592,72
+textual_maze_navigation,Maze Navigation: Complex 6x6,False,0.0,24.520423889160156,90
+textual_maze_navigation,Maze Navigation: Challenging 7x7,False,0.0,29.46839427947998,108
+textual_maze_navigation,Maze Navigation: Large 8x8,False,0.0,37.619569063186646,135
+textual_maze_navigation,Maze Navigation: Tricky 6x6,False,0.0,21.554303407669067,81
+textual_maze_navigation,Maze Navigation: Advanced 9x9,False,0.0,38.9764838218689,143
+textual_maze_navigation,Maze Navigation: Compact_Complex 5x5,False,0.0,14.486392974853516,54
+inventory_management,Scenario 1: Scenario 1: Simple constant depletion,True,1.0,10.944967269897461,180
+inventory_management,Scenario 2: Scenario 2: Alternating and increasing depletion,True,0.7333333333333334,11.971086025238037,240
+inventory_management,"Scenario 3: Scenario 3: High initial stock, aggressive depletion",False,0.5,11.177892208099365,180
+inventory_management,"Scenario 4: Scenario 4: Low capacity, tight thresholds",True,1.0,12.3024582862854,240
+inventory_management,Scenario 5: Scenario 5: Increasing Complexity and More Items,False,0.5,16.096991062164307,440
+inventory_management,Scenario 6: Scenario 6: The Decoy and The Sleeper,True,0.7666666666666667,12.706972122192383,240
+inventory_management,"Scenario 7: Scenario 7: Extreme Volatility, Zero Margin for Error",True,0.8,25.020761966705322,892
+inventory_management,Scenario 8: Scenario 8: Immediate Danger (Starts Below Threshold),False,0.6,12.182302951812744,240
+inventory_management,Scenario 9: Scenario 9: Many Simple Items,False,0.65,15.583348035812378,408
+inventory_management,Scenario 10: Scenario 10,False,0.5,11.377310991287231,180
+inventory_management,Scenario 11: Scenario 11: Advanced Patterns (Fibonacci-like),True,1.0,12.379696130752563,240
+inventory_management,"Scenario 12: Scenario 12: Six Items, Starts Below",False,0.195,18.472933053970337,551
+inventory_management,Scenario 13: Scenario 13: Illusion of Safety,True,1.0,12.714741945266724,240
+inventory_management,Scenario 14: Scenario 14: Just-In-Time Management,False,0.4333333333333334,12.204203844070435,240
+inventory_management,Scenario 15: Scenario 15: The Final Exam,False,0.0625,16.876778841018677,468
+hotel_booking_goal_based,Hotel Booking: Business Trip,True,1.0,2.1834189891815186,79
+hotel_booking_goal_based,Hotel Booking: Family Visit,True,1.0,3.748591184616089,157
+hotel_booking_goal_based,Hotel Booking: Conference Attendance,True,1.0,2.9057679176330566,118
+hotel_booking_goal_based,Hotel Booking: Wedding Weekend,True,1.0,5.110229730606079,235
+hotel_booking_goal_based,Hotel Booking: Business Conference Circuit,True,0.1,17.120683908462524,872
+hotel_booking_goal_based,Hotel Booking: Vacation Planning,True,1.0,7.4722137451171875,352
+hotel_booking_goal_based,Hotel Booking: Medical Conference with Distractors,True,1.0,3.067257881164551,118
+hotel_booking_goal_based,Hotel Booking: Multi-Generational Family Reunion with Distractors,True,1.0,3.8398609161376953,157
+hotel_booking_goal_based,Hotel Booking: Corporate Training with Budget Distractors,True,1.0,7.426306962966919,352
+hotel_booking_goal_based,Hotel Booking: Wedding Circuit with Social Distractors,True,1.0,3.759896993637085,157
+hotel_booking_goal_based,Hotel Booking: Academic Conference Circuit with Extensive Distractors,True,1.0,3.712791919708252,157
+hotel_booking_goal_based,Hotel Booking: Multi-City Job Interview Marathon with Scheduling Complexity,True,0.44285714285714284,15.617443799972534,792
+hotel_booking_goal_based,Hotel Booking: Extended Family Wedding Season with Complex Logistics,True,1.0,4.428352117538452,196
+hotel_booking_goal_based,Hotel Booking: Business Development Road Trip with Client Scheduling Constraints,True,0.0,9.603548049926758,472
+hotel_booking_goal_based,Hotel Booking: Medical Specialist Consultation Tour with Appointment Flexibility,True,0.4,7.337239027023315,352
+hotel_booking_goal_based,Hotel Booking: Flexible Weekend Getaway with Variable Duration,True,0.45,18.66932487487793,952
+hotel_booking_goal_based,Hotel Booking: Short Business Trip with Flexible Timing,True,0.9,9.656446933746338,472
+hotel_booking_goal_based,Hotel Booking: Quick City Break with Duration Choice,True,0.55,4.37455415725708,196
+task_scheduling_utility_based,Task Scheduling: Simple Rewards,True,1.0,1.2337000370025635,23
+task_scheduling_utility_based,Task Scheduling: With Deadlines,True,1.0,1.1913549900054932,22
+task_scheduling_utility_based,Task Scheduling: With Costs,True,1.0,1.0784382820129395,16
+task_scheduling_utility_based,Task Scheduling: With Dependencies,False,0.0,1.1043713092803955,22
+task_scheduling_utility_based,Task Scheduling: Complex Scenario,False,0.0,1.1372461318969727,22
+task_scheduling_utility_based,"Task Scheduling: More Jobs, Limited Slots",True,1.0,1.1821110248565674,23
+task_scheduling_utility_based,Task Scheduling: High Cost vs. Tight Deadline,True,0.75,1.1209478378295898,22
+task_scheduling_utility_based,Task Scheduling: Long Dependency Chain,False,0.0,1.3195900917053223,22
+task_scheduling_utility_based,Task Scheduling: Unprofitable Job,True,1.0,0.989736795425415,16
+task_scheduling_utility_based,Task Scheduling: Parallel Opportunities,True,1.0,1.3869380950927734,30
+task_scheduling_utility_based,Task Scheduling: Gaps Between Slots,False,0.0,1.161870002746582,15
+task_scheduling_utility_based,Task Scheduling: Impossible Duration,False,0.0,1.1706297397613525,24
+task_scheduling_utility_based,Task Scheduling: All Unprofitable,False,0.0,1.022373914718628,16
+task_scheduling_utility_based,Task Scheduling: Dependency and Deadline Interaction,True,1.0,1.1839311122894287,22
+task_scheduling_utility_based,Task Scheduling: Very Complex Scenario,True,1.0,1.2105772495269775,29
+ball_drop_learning,Ball Drop after 5 Training Episodes,True,0.8904299830604178,221.5390830039978,11222
+ball_drop_learning,Ball Drop after 10 Training Episodes,True,0.8762873047242612,167.79386496543884,8286
+ball_drop_learning,Ball Drop after 15 Training Episodes,True,0.8848214097496706,143.7752640247345,6989
+ball_drop_learning,Ball Drop after 20 Training Episodes,True,0.8739261998870695,174.40418791770935,8630
+ball_drop_learning,Ball Drop after 25 Training Episodes,True,0.8742304931300584,195.85998797416687,9764
+ball_drop_learning,Ball Drop after 30 Training Episodes,True,0.8761017974778845,172.74907994270325,8475
+ball_drop_learning,Ball Drop after 35 Training Episodes,True,0.8754827875023528,169.88140225410461,8346
+ball_drop_learning,Ball Drop after 40 Training Episodes,True,0.8751659966120837,198.7587022781372,9795
+ball_drop_learning,Ball Drop after 45 Training Episodes,True,0.8792133992094863,189.5903811454773,9230
+ball_drop_learning,Ball Drop after 50 Training Episodes,True,0.8727247788443441,179.77657389640808,8762
