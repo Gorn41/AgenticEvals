@@ -192,7 +192,7 @@ class TestBenchmarkConfig:
             benchmark_name="test_benchmark",
             agent_type=AgentType.MODEL_BASED_REFLEX,
             num_tasks=10,
-            random_seed=42,
+            random_seed=123,
             timeout_seconds=30.0,
             max_retries=5,
             collect_detailed_metrics=False,
@@ -203,7 +203,7 @@ class TestBenchmarkConfig:
         assert config.benchmark_name == "test_benchmark"
         assert config.agent_type == AgentType.MODEL_BASED_REFLEX
         assert config.num_tasks == 10
-        assert config.random_seed == 42
+        assert config.random_seed == 123
         assert config.timeout_seconds == 30.0
         assert config.max_retries == 5
         assert config.collect_detailed_metrics is False

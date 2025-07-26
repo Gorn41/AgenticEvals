@@ -59,10 +59,18 @@ This will produce the following files inside the `results/gemma-3-27b-it/` direc
 
 ### Running Specific Benchmarks
 
-You can run one or more specific benchmarks by providing their names as arguments.
+You can run one or more specific benchmarks by providing their names as arguments. The order of arguments is flexible.
 
 ```bash
 python3 run.py --model gemma-3-27b-it inventory_management simple_reflex_email --plot
+```
+
+### Verbose Output
+
+For more detailed diagnostic information from each task, use the `--verbose` flag:
+
+```bash
+python3 run.py --model gemma-3-27b-it --verbose
 ```
 
 ## Project Structure
@@ -98,6 +106,7 @@ The framework is designed to be easily extendable with new model providers.
 
 ### Goal-Based Agent
 - **hotel_booking**: Multi-step planning and booking.
+- **pathfinding**: Find the shortest path in a directed, weighted graph.
 
 ### Utility-Based Agent
 - **task_scheduling**: Complex task scheduling with constraints.

@@ -8,6 +8,7 @@ while maintaining internal state to avoid loops and reach the goal efficiently.
 import time
 import json
 import asyncio
+import re
 from typing import List, Dict, Any, Tuple, Set
 from dataclasses import dataclass
 from ..benchmark.base import BaseBenchmark, Task, TaskResult, BenchmarkConfig, AgentType
@@ -64,7 +65,7 @@ class TextualMazeBenchmark(BaseBenchmark):
             ['#', '.', '.', '.'],
             ['#', '#', '.', 'G']
         ]
-        layouts.append(MazeLayout(simple_4x4, (0, 0), (3, 3), 5))
+        layouts.append(MazeLayout(simple_4x4, (0, 0), (3, 3), 6))
         
         # 2. Medium 5x5 maze (original)
         medium_5x5 = [
@@ -110,7 +111,7 @@ class TextualMazeBenchmark(BaseBenchmark):
             ['.', '.', '.', '.', '.', '.', '.', '.'],
             ['.', '#', '#', '#', '#', '#', '.', 'G']
         ]
-        layouts.append(MazeLayout(large_8x8, (0, 0), (7, 7), 15))
+        layouts.append(MazeLayout(large_8x8, (0, 0), (7, 7), 28))
         
         # 6. Tricky 6x6 maze with narrow passages
         tricky_6x6 = [
@@ -121,7 +122,7 @@ class TextualMazeBenchmark(BaseBenchmark):
             ['.', '.', '.', '.', '.', '#'],
             ['.', '#', '#', '#', '.', 'G']
         ]
-        layouts.append(MazeLayout(tricky_6x6, (0, 0), (5, 5), 9))
+        layouts.append(MazeLayout(tricky_6x6, (0, 0), (5, 5), 10))
         
         # 7. Advanced 9x9 maze for maximum challenge
         advanced_9x9 = [
@@ -135,7 +136,7 @@ class TextualMazeBenchmark(BaseBenchmark):
             ['#', '#', '.', '.', '.', '.', '.', '#', '.'],
             ['.', '.', '.', '#', '#', '#', '.', '.', 'G']
         ]
-        layouts.append(MazeLayout(advanced_9x9, (0, 0), (8, 8), 16))
+        layouts.append(MazeLayout(advanced_9x9, (0, 0), (8, 8), 16 ))
         
         # 8. Compact but complex 5x5 maze
         compact_complex_5x5 = [
@@ -145,7 +146,7 @@ class TextualMazeBenchmark(BaseBenchmark):
             ['#', '.', '#', '.', '#'],
             ['.', '.', '#', '.', 'G']
         ]
-        layouts.append(MazeLayout(compact_complex_5x5, (0, 0), (4, 4), 6))
+        layouts.append(MazeLayout(compact_complex_5x5, (0, 0), (4, 4), 8))
         
         return layouts
     
@@ -271,16 +272,31 @@ Respond with exactly one move: UP, DOWN, LEFT, or RIGHT
 Your move:"""
     
     def _parse_move(self, response_text: str) -> str:
-        """Parse the move from model response."""
-        response = response_text.strip().upper()
-        valid_moves = ["UP", "DOWN", "LEFT", "RIGHT"]
+        """
+        Parse the last move mentioned in the response.
+        It looks for full move names (UP, DOWN, LEFT, RIGHT) or single-letter
+        abbreviations (U, D, L, R) case-insensitively, prioritizing the last one found.
+        """
+        response_upper = response_text.strip().upper()
         
-        for move in valid_moves:
-            if move in response:
-                return move
+        # Priority 1: Find the last full move word (e.g., "RIGHT")
+        full_moves = {"UP", "DOWN", "LEFT", "RIGHT"}
+        words = re.findall(r'[A-Z]+', response_upper)
         
-        # If no valid move found, return first word as fallback
-        return response.split()[0] if response.split() else "INVALID"
+        for word in reversed(words):
+            if word in full_moves:
+                return word
+
+        # Priority 2: Fallback to the last single-character move (e.g., "U")
+        # that stands alone as a word.
+        single_chars = re.findall(r'\b[A-Z]\b', response_upper)
+        move_map = {"U": "UP", "D": "DOWN", "L": "LEFT", "R": "RIGHT"}
+        
+        for char in reversed(single_chars):
+            if char in move_map:
+                return move_map[char]
+        
+        return "INVALID"
     
     def _apply_move(self, position: Tuple[int, int], move: str) -> Tuple[int, int]:
         """Apply a move to get new position."""
@@ -429,29 +445,26 @@ Your move:"""
             )
     
     def calculate_score(self, task: Task, success: bool, state: MazeState, path_taken: List[Tuple[int, int]]) -> float:
-        """Calculate score for maze navigation task with continuous efficiency scaling."""
+        """
+        Calculate score based on the ratio of optimal moves to the agent's actual moves.
+        
+        The score is calculated as `optimal_moves / actual_moves`. A perfect path where the
+        agent takes the optimal number of moves results in a score of 1.0. The score
+        approaches 0 as the number of moves increases. If the agent fails to
+        reach the goal, the score is 0.0.
+        """
         if not success:
             return 0.0
         
         optimal_length = task.metadata["optimal_path_length"]
         actual_length = state.move_count
-        efficiency_threshold = task.evaluation_criteria.get("efficiency_threshold", 3.0)
         
-        # If took more than threshold times optimal moves, task fails
-        if actual_length > optimal_length * efficiency_threshold:
-            return 0.0
+        if actual_length <= 0:
+            return 1.0 if optimal_length == 0 else 0.0
+
+        score = optimal_length / actual_length
         
-        # Continuous efficiency scaling: score = 1 - (excess_moves / optimal_moves)
-        # Perfect path (actual = optimal) gets score 1.0
-        # Path with 2x optimal moves gets score 0.5
-        # Path with 3x optimal moves gets score 0.0
-        excess_moves = actual_length - optimal_length
-        efficiency_penalty = excess_moves / optimal_length
-        
-        # Ensure score is between 0 and 1
-        score = max(0.0, min(1.0, 1.0 - efficiency_penalty))
-        
-        return score
+        return max(0.0, min(1.0, score))
     
     def _calculate_detailed_metrics(self, task: Task, state: MazeState, path_taken: List[Tuple[int, int]], 
                                   success: bool, conversation_history: List[Tuple[str, str, str]]) -> Dict[str, Any]:
@@ -484,5 +497,6 @@ Your move:"""
             "success_rate": 1.0 if success else 0.0,
             "path_taken": path_taken,
             "maze_size": task.metadata["maze_size"],
-            "difficulty": task.metadata["difficulty"]
+            "difficulty": task.metadata["difficulty"],
+            "model_move_outputs": [turn[2] for turn in conversation_history]
         } 

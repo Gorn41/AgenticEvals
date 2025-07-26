@@ -23,7 +23,7 @@ from src.benchmark.loader import load_benchmark, get_available_benchmarks
 from src.models.loader import load_model_from_name
 from src.benchmark.base import TaskResult, BaseBenchmark
 
-async def test_benchmark(model, benchmark_name: str) -> Dict[str, Any]:
+async def test_benchmark(model, benchmark_name: str, verbose: bool = False) -> Dict[str, Any]:
     """Test a model on a given benchmark."""
     print(f"\n Running Benchmark: {benchmark_name}")
     print("=" * 60)
@@ -58,20 +58,28 @@ async def test_benchmark(model, benchmark_name: str) -> Dict[str, Any]:
             status = "[PASS]" if result.success else "[FAIL]"
             print(f"   Result: {status} (Score: {result.score:.3f})")
             
-            if result.model_response and result.model_response.text:
-                response_text = result.model_response.text.strip()
-                print(f"   Model Response: {response_text[:100]}..." if len(response_text) > 100 else f"   Model Response: {response_text}")
-            
             if result.metrics:
                 print(f"   Output Tokens: {result.metrics.get('output_tokens', 'N/A')}")
             
-            if benchmark_name == "inventory_management" and "turn_scores" in result.metrics:
-                turn_scores_str = ", ".join([f"{s:.2f}" for s in result.metrics['turn_scores']])
-                print(f"   Turn Scores: [{turn_scores_str}]")
+            if verbose:
 
-            if benchmark_name == "shortest_path_planning" and "optimal_path" in result.metrics:
-                print(f"   Optimal Path: {result.metrics.get('optimal_path')} (Weight: {result.metrics.get('optimal_weight')})")
-                print(f"   Model Path:   {result.metrics.get('model_path', 'N/A')} (Weight: {result.metrics.get('model_path_weight', 'N/A')})")
+                if benchmark_name == "textual_maze_navigation" and "model_move_outputs" in result.metrics:
+                    print("   Model Move Outputs:")
+                    for i, output in enumerate(result.metrics["model_move_outputs"]):
+                        print(f"     Turn {i+1}: {output.strip()}")
+
+                if benchmark_name == "inventory_management" and "turn_scores" in result.metrics:
+                    turn_scores_str = ", ".join([f"{s:.2f}" for s in result.metrics['turn_scores']])
+                    print(f"   Turn Scores: [{turn_scores_str}]")
+
+                if benchmark_name == "shortest_path_planning" and "optimal_path" in result.metrics:
+                    print(f"   Optimal Path: {result.metrics.get('optimal_path')} (Weight: {result.metrics.get('optimal_weight')})")
+                    print(f"   Model Path:   {result.metrics.get('model_path', 'N/A')} (Weight: {result.metrics.get('model_path_weight', 'N/A')})")
+                    print(f"   Model Raw:    '{result.metrics.get('model_path_raw', 'N/A')}'")
+                
+                if result.model_response and result.model_response.text:
+                    response_text = result.model_response.text.strip()
+                    print(f"   Model Response: {response_text}")
 
             if result.execution_time is not None:
                 print(f"   Execution Time: {result.execution_time:.2f}s")
@@ -226,7 +234,7 @@ def plot_results(all_summaries: List[Dict[str, Any]], agent_type_results: Dict[s
     print(f"Agent type performance plot saved to {results_dir / f'agent_type_performance_{model_name}.png'}")
     plt.show()
 
-async def main(model_name: str, benchmarks_to_run: Optional[List[str]] = None, plot: bool = False):
+async def main(model_name: str, benchmarks_to_run: Optional[List[str]] = None, plot: bool = False, verbose: bool = False):
     """Run comprehensive evaluation of a model on all benchmarks."""
     
     # Load environment variables
@@ -260,7 +268,7 @@ async def main(model_name: str, benchmarks_to_run: Optional[List[str]] = None, p
         all_summaries = []
         
         for benchmark_name in all_benchmark_names:
-            summary = await test_benchmark(model, benchmark_name)
+            summary = await test_benchmark(model, benchmark_name, verbose=verbose)
             if 'error' not in summary:
                 all_summaries.append(summary)
 
@@ -345,6 +353,11 @@ if __name__ == "__main__":
         help="If set, plot the results."
     )
     parser.add_argument(
+        "--verbose",
+        action="store_true",
+        help="If set, print detailed diagnostic information for each task."
+    )
+    parser.add_argument(
         "--model",
         type=str,
         default="gemma-3-27b-it",
@@ -352,4 +365,4 @@ if __name__ == "__main__":
     )
     args = parser.parse_args()
 
-    asyncio.run(main(model_name=args.model, benchmarks_to_run=args.benchmarks or None, plot=args.plot)) 
+    asyncio.run(main(model_name=args.model, benchmarks_to_run=args.benchmarks or None, plot=args.plot, verbose=args.verbose)) 
