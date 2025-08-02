@@ -314,6 +314,9 @@ Action: BUY
         """Evaluates the agent's learning over a series of training and testing episodes."""
         start_time = time.time()
         
+        # Reset memory for each scenario to ensure clean learning evaluation
+        self.memory_corpus = []
+        
         num_training = task.metadata["num_training_episodes"]
         num_test = task.metadata["num_test_episodes"]
         episode_length = task.metadata["episode_length"]
