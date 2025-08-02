@@ -44,7 +44,7 @@ python3 run.py --model gemma-3-27b-it
 
 ### Plotting and Saving Results
 
-To generate plots and save detailed results to CSV files, use the `--plot` flag. This will create a `results/<model_name>/` directory containing all output files.
+To generate plots and save detailed results to CSV files, use the `--plot` flag. This will create a `results/<model_name>/` directory containing all output files. The plots include error bars that represent the standard deviation of metrics (score, time, and tokens) across the tasks within each benchmark, providing insight into the model's performance consistency.
 
 ```bash
 python3 run.py --model gemma-3-27b-it --plot
@@ -52,10 +52,10 @@ python3 run.py --model gemma-3-27b-it --plot
 
 This will produce the following files inside the `results/gemma-3-27b-it/` directory:
 
-- `benchmark_performance_gemma-3-27b-it.png`: A plot showing performance metrics for each benchmark.
-- `agent_type_performance_gemma-3-27b-it.png`: A plot showing aggregated performance metrics for each agent type.
+- `benchmark_performance_gemma-3-27b-it.png`: A plot showing performance metrics for each benchmark, with error bars for standard deviation.
+- `agent_type_performance_gemma-3-27b-it.png`: A plot showing aggregated performance metrics for each agent type, with error bars.
 - `benchmark_results_gemma-3-27b-it.csv`: A detailed breakdown of metrics for each task.
-- `agent_type_results_gemma-3-27b-it.csv`: Aggregated metrics for each agent type.
+- `agent_type_results_gemma-3-27b-it.csv`: Aggregated metrics for each agent type, including standard deviation.
 
 ### Running Specific Benchmarks
 
@@ -110,9 +110,11 @@ The framework is designed to be easily extendable with new model providers.
 
 ### Utility-Based Agent
 - **task_scheduling**: Complex task scheduling with constraints.
+- **portfolio_optimization**: Allocates capital to maximize profit based on a news forecast.
 
 ### Learning Agent
 - **ball_drop**: Physics-based prediction task.
+- **simulated_market_learning**: A trading agent that learns to adapt its strategy in a simulated market using Retrieval-Augmented Generation (RAG).
 
 ## Development
 
