@@ -18,6 +18,10 @@ from dataclasses import dataclass, field
 import asyncio
 import re
 import ast
+import warnings
+
+# Suppress a specific FutureWarning from torch triggered by sentence-transformers
+warnings.filterwarnings("ignore", category=FutureWarning, message=".*`encoder_attention_mask` is deprecated.*")
 
 from sentence_transformers import SentenceTransformer, util
 
@@ -205,7 +209,7 @@ class SimulatedMarketLearningBenchmark(BaseBenchmark):
             
             prompt = self._create_prompt(historical_prices, cash, shares)
             
-            if is_training and self.memory_corpus:
+            if self.memory_corpus:
                 prompt += self._retrieve_memories(historical_prices)
 
             response = await model.generate(prompt)
@@ -272,11 +276,11 @@ You will be given the history of prices up to the current moment, and your curre
 
 **Your Task:**
 Decide on your action for the current time step. Your response must be one of 'BUY', 'SELL', or 'HOLD'.
-Provide a brief reasoning for your choice, then state your action in the format `Action: <action>`.
+Provide a brief reasoning for your choice, then state your final action in the format `[Action: <action>]`.
 
 **Example Response:**
 The price has been trending up, so I will buy now.
-Action: BUY
+[Action: BUY]
 """
 
     def _retrieve_memories(self, historical_prices: List[float], top_k: int = 3) -> str:
@@ -302,12 +306,20 @@ Action: BUY
 
     def _parse_action(self, response_text: str) -> AgentAction:
         """Parses the model's response to extract the structured action."""
-        match = re.search(r"Action:\s*(BUY|SELL|HOLD)", response_text, re.IGNORECASE)
-        action = 'HOLD' # Default action
-        if match:
-            action = match.group(1).upper()
-            
-        return AgentAction(action=action, reasoning=response_text)
+        # Primary parsing: Look for the specific format [Action: <action>]
+        primary_match = re.search(r'\[Action:\s*(BUY|SELL|HOLD)\s*\]', response_text, re.IGNORECASE)
+        if primary_match:
+            action = primary_match.group(1).upper()
+            return AgentAction(action=action, reasoning=response_text)
+
+        # Fallback parsing: Find the last mention of "Action: <action>"
+        fallback_matches = re.findall(r'Action:\s*(BUY|SELL|HOLD)', response_text, re.IGNORECASE)
+        if fallback_matches:
+            action = fallback_matches[-1].upper()
+            return AgentAction(action=action, reasoning=response_text)
+
+        # Default to HOLD if no action is found
+        return AgentAction(action='HOLD', reasoning=response_text)
 
 
     async def evaluate_task(self, task: Task, model: BaseModel) -> TaskResult:
