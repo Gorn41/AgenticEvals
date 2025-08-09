@@ -13,6 +13,8 @@ from . import inventory_management
 from . import ball_drop
 from . import task_scheduling
 from . import simulated_market_learning
+from . import simple_reflex_fraud_detection
+from . import event_conflict_detection
 
 __all__ = [
     "simple_reflex_example",
@@ -25,4 +27,6 @@ __all__ = [
     "ball_drop",
     "task_scheduling",
     "simulated_market_learning",
+    "simple_reflex_fraud_detection",
+    "event_conflict_detection",
 ] 

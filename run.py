@@ -77,9 +77,41 @@ async def test_benchmark(model, benchmark_name: str, verbose: bool = False) -> D
                     print(f"   Model Path:   {result.metrics.get('model_path', 'N/A')} (Weight: {result.metrics.get('model_path_weight', 'N/A')})")
                     print(f"   Model Raw:    '{result.metrics.get('model_path_raw', 'N/A')}'")
                 
+                # Additional verbose diagnostics for specific benchmarks
+                if benchmark_name == "fraud_detection_simple":
+                    if result.metrics:
+                        print(f"   Follows Instructions: {result.metrics.get('follows_instructions', 'N/A')}")
+                        print(f"   Exact Match: {result.metrics.get('exact_match', 'N/A')}")
+                        print(f"   Cleaned Response: {result.metrics.get('cleaned_response', 'N/A')}")
+
                 if result.model_response and result.model_response.text:
                     response_text = result.model_response.text.strip()
                     print(f"   Model Response: {response_text}")
+
+                if benchmark_name == "event_conflict_detection" and result.metrics:
+                    m = result.metrics
+                    # Final summary metrics
+                    print(f"   Ground Truth Tags: {m.get('ground_truth_tags', 'N/A')}")
+                    print(f"   Final Predicted Tags: {m.get('final_predicted_tags', 'N/A')}")
+                    print(f"   Final Precision/Recall/F1: {m.get('final_precision','N/A'):.3f}/{m.get('final_recall','N/A'):.3f}/{m.get('final_f1','N/A'):.3f}")
+                    if 'final_parse_failed' in m:
+                        print(f"   Final Parse Failed: {m.get('final_parse_failed')}")
+                    # Dynamics across turns
+                    if 'per_turn_precision' in m and 'per_turn_recall' in m and 'per_turn_f1' in m:
+                        turn_p = ", ".join(f"{x:.2f}" for x in m['per_turn_precision'])
+                        turn_r = ", ".join(f"{x:.2f}" for x in m['per_turn_recall'])
+                        turn_f1 = ", ".join(f"{x:.2f}" for x in m['per_turn_f1'])
+                        print(f"   Per-Turn Precision: [{turn_p}]")
+                        print(f"   Per-Turn Recall:    [{turn_r}]")
+                        print(f"   Per-Turn F1:        [{turn_f1}]")
+                    if 'predicted_tags_by_turn' in m:
+                        print(f"   Predicted Tags by Turn: {m['predicted_tags_by_turn']}")
+                    if 'flip_flops' in m:
+                        print(f"   Flip-Flops: {m['flip_flops']}")
+                    if 'monotonic_recall' in m:
+                        print(f"   Monotonic Recall: {m['monotonic_recall']:.3f}")
+                    if 'spurious_persistence' in m:
+                        print(f"   Spurious Persistence: {m['spurious_persistence']:.3f}")
 
             if result.execution_time is not None:
                 print(f"   Execution Time: {result.execution_time:.2f}s")

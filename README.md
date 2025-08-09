@@ -62,7 +62,7 @@ This will produce the following files inside the `results/gemma-3-27b-it/` direc
 You can run one or more specific benchmarks by providing their names as arguments. The order of arguments is flexible.
 
 ```bash
-python3 run.py --model gemma-3-27b-it inventory_management simple_reflex_email --plot
+python3 run.py --model gemma-3-27b-it inventory_management simple_reflex_email fraud_detection_simple --plot
 ```
 
 ### Verbose Output
@@ -99,10 +99,12 @@ The framework is designed to be easily extendable with new model providers.
 ### Simple Reflex Agent
 - **simple_reflex_example**: Basic stimulus-response scenarios.
 - **simple_reflex_email**: Email processing tasks.
+- **fraud_detection_simple**: Binary fraud vs. legitimate classification from multi-line, log-like scenarios.
 
 ### Model-Based Reflex Agent
 - **model_based_maze**: Navigation in a partially observable environment.
 - **inventory_management**: Inventory tracking and restocking.
+- **event_conflict_detection**: Multi-turn distributed-systems incident tagging.
 
 ### Goal-Based Agent
 - **hotel_booking**: Multi-step planning and booking.
