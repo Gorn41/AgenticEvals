@@ -7,3 +7,9 @@ PyYAML
 pytest
 pytest-asyncio
 sentence-transformers
+flask
+beautifulsoup4
+requests
+selenium
+websocket-client
+websockets

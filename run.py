@@ -20,6 +20,8 @@ src_path = Path(__file__).resolve().parent.parent / "src"
 sys.path.insert(0, str(src_path))
 
 from src.benchmark.loader import load_benchmark, get_available_benchmarks
+from src.benchmarks.local_web_app import stop_server as stop_flask_server
+from src.benchmarks.selenium_mcp_server import stop_mcp_server
 from src.models.loader import load_model_from_name
 from src.benchmark.base import TaskResult, BaseBenchmark
 
@@ -347,6 +349,13 @@ async def main(model_name: str, benchmarks_to_run: Optional[List[str]] = None, p
         print(f"   Overall Success Rate: {overall_success_rate:.1%} ({total_successful}/{total_tasks})")
         print(f"   Weighted Average Score: {weighted_avg_score:.3f}")
         print(f"   Total Evaluation Time: {total_time:.1f}s ({total_time/60:.1f} minutes)")
+        # Auto-stop dev servers if local_web_navigation was run
+        try:
+            if any(s['benchmark_name'] == 'local_web_navigation' for s in all_summaries):
+                stop_flask_server('127.0.0.1', 5005)
+                stop_mcp_server()
+        except Exception:
+            pass
         
         # Aggregate results by agent type
         agent_type_results = {}

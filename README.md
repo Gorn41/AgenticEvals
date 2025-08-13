@@ -22,12 +22,17 @@ cd AgenticEvals
 pip install -r requirements.txt
 ```
 
-### 2. API Key Setup
+### 2. Environment Setup (API keys and local Selenium MCP)
 
 ```bash
 python3 setup_env.py
-# Follow the prompts to set up your Gemini API key
+# Follow the prompts to set up your Gemini API key. The script will also set SELENIUM_MCP_URL
+# (defaults to ws://127.0.0.1:7007 if you press Enter).
 ```
+
+You must run a Selenium MCP server at `SELENIUM_MCP_URL` before running `local_web_navigation`.
+The benchmark expects MCP tools: `browser.navigate`, `browser.click`, `browser.type`, `browser.submit`,
+`browser.clearCookies`, `browser.getDomSummary`.
 
 Or set manually:
 ```bash
@@ -109,6 +114,7 @@ The framework is designed to be easily extendable with new model providers.
 ### Goal-Based Agent
 - **hotel_booking**: Multi-step planning and booking.
 - **pathfinding**: Find the shortest path in a directed, weighted graph.
+- **local_web_navigation**: Structured meta-planning benchmark on a deterministic local site.
 
 ### Utility-Based Agent
 - **task_scheduling**: Complex task scheduling with constraints.

@@ -47,6 +47,15 @@ def get_api_key():
     return api_key
 
 
+def get_mcp_endpoint():
+    """Prompt user for a local Selenium MCP WebSocket URL."""
+    print("\nOptional: Configure local Selenium MCP endpoint (for web navigation benchmark).")
+    print("If you run a local MCP server, enter its WebSocket URL (e.g., ws://127.0.0.1:7007).")
+    print("Otherwise, press Enter to skip and configure later in .env.")
+    mcp_url = input("Enter SELENIUM_MCP_URL (or press Enter to skip): ").strip()
+    return mcp_url or None
+
+
 def update_env_file(api_key: str):
     """Update .env file with the provided API key."""
     env_file = Path(".env")
@@ -76,6 +85,29 @@ def update_env_file(api_key: str):
     # Write back to file
     env_file.write_text("\n".join(updated_lines) + "\n")
     print(f"Updated {env_file} with your Gemini API key.")
+    return True
+
+
+def update_env_with_mcp(url: str) -> bool:
+    """Add or update SELENIUM_MCP_URL in .env."""
+    from pathlib import Path
+    env_file = Path(".env")
+    if not env_file.exists():
+        print("Error: .env file not found!")
+        return False
+    lines = env_file.read_text().splitlines()
+    updated_lines = []
+    updated = False
+    for line in lines:
+        if line.startswith("SELENIUM_MCP_URL="):
+            updated_lines.append(f"SELENIUM_MCP_URL={url}")
+            updated = True
+        else:
+            updated_lines.append(line)
+    if not updated:
+        updated_lines.append(f"SELENIUM_MCP_URL={url}")
+    env_file.write_text("\n".join(updated_lines) + "\n")
+    print(f"Updated {env_file} with SELENIUM_MCP_URL.")
     return True
 
 
@@ -120,7 +152,7 @@ def main():
     if not create_env_file():
         return 1
     
-    # Step 2: Get API key
+    # Step 2: API Key Configuration
     print("\nStep 2: API Key Configuration...")
     api_key = get_api_key()
     
@@ -128,13 +160,23 @@ def main():
         if not update_env_file(api_key):
             return 1
     
-    # Step 3: Test setup
-    print("\nStep 3: Testing configuration...")
+    # Step 3: MCP Endpoint
+    print("\nStep 3: Local Selenium MCP Endpoint...")
+    mcp_url = get_mcp_endpoint()
+    if mcp_url:
+        update_env_with_mcp(mcp_url)
+    else:
+        # Default to localhost if not provided
+        update_env_with_mcp("ws://127.0.0.1:7007")
+
+    # Step 4: Test setup
+    print("\nStep 4: Testing configuration...")
     if test_setup():
         print("\nSetup completed successfully!")
     else:
         print("\nSetup completed with warnings.")
         print("Check the .env file and make sure your Gemini API key is correct.")
+    print("\nNote: To run the local web navigation benchmark, you must start a Selenium MCP server listening at SELENIUM_MCP_URL. If you don't have one, see README for instructions.")
     
     return 0
 
