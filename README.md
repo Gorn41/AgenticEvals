@@ -119,6 +119,7 @@ The framework is designed to be easily extendable with new model providers.
 ### Utility-Based Agent
 - **task_scheduling**: Complex task scheduling with constraints.
 - **portfolio_optimization**: Allocates capital to maximize profit based on a news forecast.
+- **manufacturing_line_optimization**: Optimizes manufacturing parameters. Multi-objective Pareto optimization.
 
 ### Learning Agent
 - **ball_drop**: Physics-based prediction task.

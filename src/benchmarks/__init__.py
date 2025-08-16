@@ -16,6 +16,7 @@ from . import simulated_market_learning
 from . import simple_reflex_fraud_detection
 from . import event_conflict_detection
 from . import local_web_navigation
+from . import manufacturing_optimization
 
 __all__ = [
     "simple_reflex_example",
@@ -31,4 +32,5 @@ __all__ = [
     "simple_reflex_fraud_detection",
     "event_conflict_detection",
     "local_web_navigation",
+    "manufacturing_optimization",
 ] 

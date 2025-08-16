@@ -2,7 +2,7 @@
 Event Conflict Detection (Model-Based Reflex Agent) benchmark for AgenticEvals.
 
 8 hand-authored scenarios, 4 turns each. Each turn provides raw distributed-system
-state only (no tag words). The model must infer incident tags over time.
+state only. The model must infer incident tags over time.
 
 Score: final-turn micro-F1 over a closed tag set.
 Diagnostics: per-turn precision/recall/F1, flip-flops, monotonic recall,

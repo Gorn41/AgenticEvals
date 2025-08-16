@@ -2,8 +2,8 @@
 Utility-Based Portfolio Optimization Benchmark for AgenticEvals.
 
 This benchmark tests a model's ability to act as a utility-based agent
-for a financial task. The agent must allocate a starting capital across a
-set of assets to maximize expected profit for a single upcoming time period,
+for a financial task. The agent must allocate a starting capital on an asset from
+a set of assets to maximize expected profit for a single upcoming time period,
 based on a "market forecast" presented as a news article.
 
 The model must:

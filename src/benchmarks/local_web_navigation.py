@@ -28,8 +28,6 @@ from websocket import create_connection
 from urllib.parse import urlparse
 from collections import deque
 
-# Note: MCP-only in this benchmark; remove any stale Selenium references
-
 from ..benchmark.base import AgentType, BaseBenchmark, BenchmarkConfig, Task, TaskResult
 from ..benchmark.registry import benchmark
 from ..models.base import BaseModel, ModelResponse
