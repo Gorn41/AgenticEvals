@@ -17,6 +17,7 @@ from . import simple_reflex_fraud_detection
 from . import event_conflict_detection
 from . import local_web_navigation
 from . import manufacturing_optimization
+from . import ecosystem_learning
 
 __all__ = [
     "simple_reflex_example",
@@ -33,4 +34,5 @@ __all__ = [
     "event_conflict_detection",
     "local_web_navigation",
     "manufacturing_optimization",
+    "ecosystem_learning",
 ] 

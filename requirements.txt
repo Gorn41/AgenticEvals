@@ -13,3 +13,4 @@ requests
 selenium
 websocket-client
 websockets
+networkx

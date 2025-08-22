@@ -62,9 +62,9 @@ This will produce the following files inside the `results/gemma-3-27b-it/` direc
 - `benchmark_results_gemma-3-27b-it.csv`: A detailed breakdown of metrics for each task.
 - `agent_type_results_gemma-3-27b-it.csv`: Aggregated metrics for each agent type, including standard deviation.
 
-### Running Specific Benchmarks
+### Running Specific Tasks
 
-You can run one or more specific benchmarks by providing their names as arguments. The order of arguments is flexible.
+You can run one or more specific tasks by providing their names as arguments. Use names of tasks under each agent type in Benchmark Types section below. The order of arguments is flexible.
 
 ```bash
 python3 run.py --model gemma-3-27b-it inventory_management simple_reflex_email fraud_detection_simple --plot
@@ -124,6 +124,7 @@ The framework is designed to be easily extendable with new model providers.
 ### Learning Agent
 - **ball_drop**: Physics-based prediction task.
 - **simulated_market_learning**: A trading agent that learns to adapt its strategy in a simulated market using Retrieval-Augmented Generation (RAG).
+- **ecosystem_learning**: Knowledge-graph-based ecosystem dynamics learning.
 
 ## Development
 

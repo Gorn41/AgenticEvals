@@ -204,7 +204,7 @@ Rules:
 - You cannot move outside the maze boundaries
 - Avoid revisiting cells you've already been to (maintain internal memory)
 
-Current view:
+Current 3x3 view (X = your position):
 {self._get_local_view(maze, maze.start_pos)}
 
 Your position: {maze.start_pos}
