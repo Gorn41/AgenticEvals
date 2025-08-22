@@ -82,14 +82,76 @@ python3 run.py --model gemma-3-27b-it --verbose
 
 ```
 AgenticEvals/
+├── ENVIRONMENT_SETUP.md
+├── LICENSE
+├── README.md
+├── requirements.txt
+├── pytest.ini
+├── setup.py
+├── setup_env.py                # Main env setup script
+├── run.py                      # Main entrypoint to run evaluations
+├── run_tests.py                # Helper to run unit tests
+├── quick_start.py              # Minimal example runner
+├── example_usage.py            # Example: loading a model and running a benchmark
+├── plot_agent_type_results.py  # Plotting utility script
+├── plot_benchmark_results.py   # Plotting utility script
+├── results/                    # Generated results, plots, CSVs
+│   └── <model_name>/           # E.g., gemma-3-27b-it, contains CSVs and plots
 ├── src/
-│   ├── benchmark/        # Core benchmark framework (base classes, loader, registry)
-│   ├── benchmarks/       # Implementations of specific benchmarks
-│   ├── models/           # Support for different language models
-│   └── utils/            # Utility functions (logging, config)
-├── tests/                # Test suite for the project
-├── run.py          # Main script for running evaluations
-└── requirements.txt      # Project dependencies
+│   ├── __init__.py
+│   ├── benchmark/              # Core benchmark framework
+│   │   ├── __init__.py
+│   │   ├── base.py             # BaseBenchmark, Task, TaskResult, AgentType
+│   │   ├── loader.py           # load_benchmark utilities
+│   │   └── registry.py         # @benchmark decorator and registry
+│   ├── benchmarks/             # Individual benchmark implementations
+│   │   ├── __init__.py
+│   │   ├── ball_drop.py
+│   │   ├── ecosystem_learning.py
+│   │   ├── event_conflict_detection.py
+│   │   ├── hotel_booking.py
+│   │   ├── inventory_management.py
+│   │   ├── local_web_app.py
+│   │   ├── local_web_navigation.py
+│   │   ├── manufacturing_optimization.py
+│   │   ├── model_based_maze.py
+│   │   ├── pathfinding.py
+│   │   ├── portfolio_optimization.py
+│   │   ├── selenium_mcp_server.py
+│   │   ├── simple_reflex_email.py
+│   │   ├── simple_reflex_example.py
+│   │   ├── simple_reflex_fraud_detection.py
+│   │   ├── simulated_market_learning.py
+│   │   └── task_scheduling.py
+│   ├── models/                 # Model interfaces and providers
+│   │   ├── __init__.py
+│   │   ├── base.py             # BaseModel framework
+│   │   ├── gemini.py           # Gemini/Gemma model bindings
+│   │   └── loader.py           # model loading utilities
+│   └── utils/                  # Shared utilities
+│       ├── __init__.py
+│       ├── config.py           # Config handling (env, defaults)
+│       └── logging.py          # Structured logging utilities
+├── tests/                      # Unit test suite
+│   ├── __init__.py
+│   ├── README.md
+│   ├── conftest.py
+│   ├── test_benchmark/
+│   │   ├── __init__.py
+│   │   ├── test_base.py
+│   │   └── test_loader.py
+│   ├── test_benchmarks/
+│   │   ├── __init__.py
+│   │   └── test_simple_reflex_example.py
+│   ├── test_models/
+│   │   ├── __init__.py
+│   │   ├── test_base.py
+│   │   └── test_gemini.py
+│   └── test_utils/
+│       ├── __init__.py
+│       ├── test_config.py
+│       └── test_logging.py
+└── TESTING.md                # Testing guide and conventions
 ```
 
 ## Supported Models
@@ -102,29 +164,39 @@ The framework is designed to be easily extendable with new model providers.
 ## Benchmark Types
 
 ### Simple Reflex Agent
-- **simple_reflex_example**: Basic stimulus-response scenarios.
-- **simple_reflex_email**: Email processing tasks.
-- **fraud_detection_simple**: Binary fraud vs. legitimate classification from multi-line, log-like scenarios.
+The key characteristics of a simple Reflex Agents/Tasks include being able to respond to the current state (no internal model or memory of past states nor prediction of future states), not requiring any learning, and emphasizing reaction speed.
+
+- **simple_reflex_example**: Basic stimulus-response scenarios. This is a basic reaction task emphasizing response speed.
+- **simple_reflex_email**: Email processing tasks. This task emphasizes the ability to react to signals amongst distractors within natural language.
+- **fraud_detection_simple**: Binary fraud vs. legitimate classification from multi-line, log-like scenarios. This task emphasizes the ability to react to signals amongst distractors within structured data.
 
 ### Model-Based Reflex Agent
-- **model_based_maze**: Navigation in a partially observable environment.
-- **inventory_management**: Inventory tracking and restocking.
-- **event_conflict_detection**: Multi-turn distributed-systems incident tagging.
+The key characteristics of model-based reflex agents/tasks include maintaining an adaptable internal model of the environment and the ability to use this internal model to make informed decisions. This requires the agent to have good context memory and recall.
+
+- **model_based_maze**: Navigation in a partially observable environment. This task emphasizes the ability to build an internal model of the environment’s state space from partial observations and context memory and recall.
+- **inventory_management**: Inventory tracking and restocking. This task emphasizes the ability to build an internal model of the environment’s transition function from partial observations.
+- **event_conflict_detection**: Multi-turn distributed-systems incident tagging. This task emphasizes the ability to iteratively improve hypotheses of the environment model through extended reasoning.
 
 ### Goal-Based Agent
-- **hotel_booking**: Multi-step planning and booking.
-- **pathfinding**: Find the shortest path in a directed, weighted graph.
-- **local_web_navigation**: Structured meta-planning benchmark on a deterministic local site.
+The key characteristics of goal-based agents/tasks include decision-making based on what actions would help the agent better achieve a goal, the ability to effectively plan for future actions and/or adjust plans.
+
+- **hotel_booking**: Multi-step planning and booking. This task emphasizes planning comprehensiveness and efficiency.
+- **pathfinding**: Find the shortest path in a directed, weighted graph. This task emphasises the ability to do long-horizon planning.
+- **local_web_navigation**: Structured meta-planning benchmark on a deterministic local site. This task emphasizes the ability to perform meta-planning because in order to do well, the agent must plan during the exploration phase to optimize planning in the exploitation phase.
 
 ### Utility-Based Agent
-- **task_scheduling**: Complex task scheduling with constraints.
-- **portfolio_optimization**: Allocates capital to maximize profit based on a news forecast.
-- **manufacturing_line_optimization**: Optimizes manufacturing parameters. Multi-objective Pareto optimization.
+The key characteristics of utility-based agents/tasks include decision-making based on outcome optimization where outcome is determined by various factors (i.e. optimize utility where the utility is a function of factors such as costs, risk, benefits, etc.).
+
+- **task_scheduling**: Complex task scheduling with constraints. This task emphasizes the ability to perform constrained utility maximization.
+- **portfolio_optimization**: Task on allocating capital to maximize profit based on a news forecast. This task emphasizes the ability to perform utility maximization from information inferred from natural language.
+- **manufacturing_line_optimization**: Manufacturing parameters optimization. This task emphasizes the ability to perform multi-objective Pareto optimization.
 
 ### Learning Agent
-- **ball_drop**: Physics-based prediction task.
-- **simulated_market_learning**: A trading agent that learns to adapt its strategy in a simulated market using Retrieval-Augmented Generation (RAG).
-- **ecosystem_learning**: Knowledge-graph-based ecosystem dynamics learning.
+The key characteristics of learning agents/tasks include continuous learning from data from the environment to improve decision-making, being able to learn from past data to generalize and make decisions on unseen data, and being flexible and able to adapt to and learn from data from a wide variety of tasks or environment dynamics.
+
+- **ball_drop**: Physics-based prediction task. This task emphasizes agent flexibility and its ability to learn from a wide range of environmental dynamics as well as learning involving in-context memory.
+- **simulated_market_learning**: A trading agent that learns to adapt its strategy in a simulated market using Retrieval-Augmented Generation (RAG). This task emphasizes agent flexibility and its ability to learn from a wide range of environmental dynamics as well as learning involving retrieval augmented generation (RAG).
+- **ecosystem_learning**: Knowledge-graph-based ecosystem dynamics learning. This task emphasizes agent ability to learn using a knowledge graph.
 
 ## Development
 
