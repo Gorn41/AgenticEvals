@@ -37,7 +37,7 @@ MAX_BENIGN_SUFFIX_LINES = 7
 
 
 @benchmark(
-    name="fraud_detection_simple",
+    name="fraud_detection",
     agent_type=AgentType.SIMPLE_REFLEX,
     description="Binary fraud detection on multi-line log-like scenarios"
 )

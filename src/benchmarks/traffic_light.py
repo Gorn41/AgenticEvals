@@ -1,5 +1,5 @@
 """
-Example Simple Reflex Agent benchmark for AgenticEvals.
+Traffic Light Simple Reflex Agent benchmark for AgenticEvals.
 
 This benchmark tests a model's ability to follow simple stimulus-response patterns,
 specifically for traffic light scenarios where the model should respond with
@@ -18,7 +18,7 @@ logger = get_logger(__name__)
 
 
 @benchmark(
-    name="traffic_light_simple",
+    name="traffic_light",
     agent_type=AgentType.SIMPLE_REFLEX,
     description="Traffic light response benchmark testing immediate rule-based responses"
 )

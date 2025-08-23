@@ -17,7 +17,7 @@ logger = get_logger(__name__)
 
 
 @benchmark(
-    name="email_autoresponder_simple",
+    name="email_autoresponder",
     agent_type=AgentType.SIMPLE_REFLEX,
     description="Email auto-responder benchmark testing immediate rule-based responses to email scenarios"
 )

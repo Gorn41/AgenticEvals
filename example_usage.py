@@ -86,7 +86,7 @@ async def main():
         
         # Load and run benchmark  
         print("\nLoading traffic light benchmark...")
-        benchmark = load_benchmark("traffic_light_simple")
+        benchmark = load_benchmark("traffic_light")
         print(f"SUCCESS: Benchmark loaded: {benchmark.benchmark_name}")
         
         # Show benchmark info

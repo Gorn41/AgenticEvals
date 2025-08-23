@@ -67,7 +67,7 @@ This will produce the following files inside the `results/gemma-3-27b-it/` direc
 You can run one or more specific tasks by providing their names as arguments. Use names of tasks under each agent type in Benchmark Types section below. The order of arguments is flexible.
 
 ```bash
-python3 run.py --model gemma-3-27b-it inventory_management simple_reflex_email fraud_detection_simple --plot
+python3 run.py --model gemma-3-27b-it inventory_management email_autoresponder fraud_detection --plot
 ```
 
 ### Verbose Output
@@ -107,21 +107,21 @@ AgenticEvals/
 │   ├── benchmarks/             # Individual benchmark implementations
 │   │   ├── __init__.py
 │   │   ├── ball_drop.py
-│   │   ├── ecosystem_learning.py
+│   │   ├── ecosystem.py
 │   │   ├── event_conflict_detection.py
 │   │   ├── hotel_booking.py
 │   │   ├── inventory_management.py
 │   │   ├── local_web_app.py
 │   │   ├── local_web_navigation.py
-│   │   ├── manufacturing_optimization.py
-│   │   ├── model_based_maze.py
-│   │   ├── pathfinding.py
+│   │   ├── manufacturing_line_optimization.py
+│   │   ├── textual_maze_navigation.py
+│   │   ├── shortest_path_planning.py
 │   │   ├── portfolio_optimization.py
 │   │   ├── selenium_mcp_server.py
-│   │   ├── simple_reflex_email.py
-│   │   ├── simple_reflex_example.py
-│   │   ├── simple_reflex_fraud_detection.py
-│   │   ├── simulated_market_learning.py
+│   │   ├── email_autoresponder.py
+│   │   ├── traffic_light.py
+│   │   ├── fraud_detection.py
+│   │   ├── simulated_market.py
 │   │   └── task_scheduling.py
 │   ├── models/                 # Model interfaces and providers
 │   │   ├── __init__.py
@@ -166,14 +166,14 @@ The framework is designed to be easily extendable with new model providers.
 ### Simple Reflex Agent
 The key characteristics of a simple Reflex Agents/Tasks include being able to respond to the current state (no internal model or memory of past states nor prediction of future states), not requiring any learning, and emphasizing reaction speed.
 
-- **simple_reflex_example**: Basic stimulus-response scenarios. This is a basic reaction task emphasizing response speed.
-- **simple_reflex_email**: Email processing tasks. This task emphasizes the ability to react to signals amongst distractors within natural language.
-- **fraud_detection_simple**: Binary fraud vs. legitimate classification from multi-line, log-like scenarios. This task emphasizes the ability to react to signals amongst distractors within structured data.
+- **traffic_light**: Basic stimulus-response scenarios. This is a basic reaction task emphasizing response speed.
+- **email_autoresponder**: Email processing tasks. This task emphasizes the ability to react to signals amongst distractors within natural language.
+- **fraud_detection**: Binary fraud vs. legitimate classification from multi-line, log-like scenarios. This task emphasizes the ability to react to signals amongst distractors within structured data.
 
 ### Model-Based Reflex Agent
 The key characteristics of model-based reflex agents/tasks include maintaining an adaptable internal model of the environment and the ability to use this internal model to make informed decisions. This requires the agent to have good context memory and recall.
 
-- **model_based_maze**: Navigation in a partially observable environment. This task emphasizes the ability to build an internal model of the environment’s state space from partial observations and context memory and recall.
+- **textual_maze_navigation**: Navigation in a partially observable environment. This task emphasizes the ability to build an internal model of the environment’s state space from partial observations and context memory and recall.
 - **inventory_management**: Inventory tracking and restocking. This task emphasizes the ability to build an internal model of the environment’s transition function from partial observations.
 - **event_conflict_detection**: Multi-turn distributed-systems incident tagging. This task emphasizes the ability to iteratively improve hypotheses of the environment model through extended reasoning.
 
@@ -181,7 +181,7 @@ The key characteristics of model-based reflex agents/tasks include maintaining a
 The key characteristics of goal-based agents/tasks include decision-making based on what actions would help the agent better achieve a goal, the ability to effectively plan for future actions and/or adjust plans.
 
 - **hotel_booking**: Multi-step planning and booking. This task emphasizes planning comprehensiveness and efficiency.
-- **pathfinding**: Find the shortest path in a directed, weighted graph. This task emphasises the ability to do long-horizon planning.
+- **shortest_path_planning**: Find the shortest path in a directed, weighted graph. This task emphasises the ability to do long-horizon planning.
 - **local_web_navigation**: Structured meta-planning benchmark on a deterministic local site. This task emphasizes the ability to perform meta-planning because in order to do well, the agent must plan during the exploration phase to optimize planning in the exploitation phase.
 
 ### Utility-Based Agent
@@ -195,8 +195,8 @@ The key characteristics of utility-based agents/tasks include decision-making ba
 The key characteristics of learning agents/tasks include continuous learning from data from the environment to improve decision-making, being able to learn from past data to generalize and make decisions on unseen data, and being flexible and able to adapt to and learn from data from a wide variety of tasks or environment dynamics.
 
 - **ball_drop**: Physics-based prediction task. This task emphasizes agent flexibility and its ability to learn from a wide range of environmental dynamics as well as learning involving in-context memory.
-- **simulated_market_learning**: A trading agent that learns to adapt its strategy in a simulated market using Retrieval-Augmented Generation (RAG). This task emphasizes agent flexibility and its ability to learn from a wide range of environmental dynamics as well as learning involving retrieval augmented generation (RAG).
-- **ecosystem_learning**: Knowledge-graph-based ecosystem dynamics learning. This task emphasizes agent ability to learn using a knowledge graph.
+- **simulated_market**: A trading agent that learns to adapt its strategy in a simulated market using Retrieval-Augmented Generation (RAG). This task emphasizes agent flexibility and its ability to learn from a wide range of environmental dynamics as well as learning involving retrieval augmented generation (RAG).
+- **ecosystem**: Knowledge-graph-based ecosystem dynamics learning. This task emphasizes agent ability to learn using a knowledge graph.
 
 ## Development
 
@@ -250,7 +250,7 @@ async def main():
     model = load_model_from_name("gemma-3-4b-it")
 
     # Load the benchmark you want to run
-    benchmark = load_benchmark("simple_reflex_email")
+    benchmark = load_benchmark("email_autoresponder")
 
     # Run the benchmark and get the results
     results = await benchmark.run_benchmark(model)

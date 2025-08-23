@@ -80,7 +80,7 @@ async def test_benchmark(model, benchmark_name: str, verbose: bool = False) -> D
                     print(f"   Model Raw:    '{result.metrics.get('model_path_raw', 'N/A')}'")
                 
                 # Additional verbose diagnostics for specific benchmarks
-                if benchmark_name == "fraud_detection_simple":
+                if benchmark_name == "fraud_detection":
                     if result.metrics:
                         print(f"   Follows Instructions: {result.metrics.get('follows_instructions', 'N/A')}")
                         print(f"   Exact Match: {result.metrics.get('exact_match', 'N/A')}")

@@ -70,7 +70,7 @@ class HardConstraints:
 
 
 @benchmark(
-    name="hotel_booking_goal_based",
+    name="hotel_booking",
     agent_type=AgentType.GOAL_BASED,
     description="Hotel booking benchmark with natural language constraint inference"
 )

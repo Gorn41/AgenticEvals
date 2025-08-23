@@ -65,7 +65,7 @@ class AgentAction:
 
 
 @benchmark(
-    name="simulated_market_learning",
+    name="simulated_market",
     agent_type=AgentType.LEARNING,
     description="Tests an agent's ability to learn a trading strategy in a simulated market with RAG."
 )

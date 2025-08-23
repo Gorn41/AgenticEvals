@@ -5,7 +5,7 @@ Tests for the traffic light simple reflex benchmark.
 import pytest
 import os
 
-from src.benchmarks.simple_reflex_example import TrafficLightBenchmark
+from src.benchmarks.traffic_light import TrafficLightBenchmark
 from src.benchmark.base import BenchmarkConfig, AgentType, Task
 from src.models.base import ModelResponse
 from src.models.loader import load_gemini
@@ -17,18 +17,18 @@ class TestTrafficLightBenchmark:
     def test_init(self):
         """Test TrafficLightBenchmark initialization."""
         config = BenchmarkConfig(
-            benchmark_name="traffic_light_simple",
+            benchmark_name="traffic_light",
             agent_type=AgentType.SIMPLE_REFLEX
         )
         
         benchmark = TrafficLightBenchmark(config)
-        assert benchmark.benchmark_name == "traffic_light_simple"
+        assert benchmark.benchmark_name == "traffic_light"
         assert benchmark.agent_type == AgentType.SIMPLE_REFLEX
     
     def test_get_tasks(self):
         """Test getting all tasks."""
         config = BenchmarkConfig(
-            benchmark_name="traffic_light_simple",
+            benchmark_name="traffic_light",
             agent_type=AgentType.SIMPLE_REFLEX
         )
         benchmark = TrafficLightBenchmark(config)
@@ -47,7 +47,7 @@ class TestTrafficLightBenchmark:
     def test_create_prompt(self):
         """Test prompt creation."""
         config = BenchmarkConfig(
-            benchmark_name="traffic_light_simple",
+            benchmark_name="traffic_light",
             agent_type=AgentType.SIMPLE_REFLEX
         )
         benchmark = TrafficLightBenchmark(config)
@@ -61,7 +61,7 @@ class TestTrafficLightBenchmark:
     def test_calculate_score_exact_match(self):
         """Test score calculation with exact match."""
         config = BenchmarkConfig(
-            benchmark_name="traffic_light_simple",
+            benchmark_name="traffic_light",
             agent_type=AgentType.SIMPLE_REFLEX
         )
         benchmark = TrafficLightBenchmark(config)
@@ -75,7 +75,7 @@ class TestTrafficLightBenchmark:
     def test_calculate_score_case_insensitive(self):
         """Test score calculation is case insensitive."""
         config = BenchmarkConfig(
-            benchmark_name="traffic_light_simple", 
+            benchmark_name="traffic_light", 
             agent_type=AgentType.SIMPLE_REFLEX
         )
         benchmark = TrafficLightBenchmark(config)
@@ -89,7 +89,7 @@ class TestTrafficLightBenchmark:
     def test_calculate_score_with_extra_words(self):
         """Test score calculation with extra words."""
         config = BenchmarkConfig(
-            benchmark_name="traffic_light_simple",
+            benchmark_name="traffic_light",
             agent_type=AgentType.SIMPLE_REFLEX  
         )
         benchmark = TrafficLightBenchmark(config)
@@ -103,7 +103,7 @@ class TestTrafficLightBenchmark:
     def test_calculate_score_no_match(self):
         """Test score calculation with no match."""
         config = BenchmarkConfig(
-            benchmark_name="traffic_light_simple",
+            benchmark_name="traffic_light",
             agent_type=AgentType.SIMPLE_REFLEX
         )
         benchmark = TrafficLightBenchmark(config)
@@ -117,7 +117,7 @@ class TestTrafficLightBenchmark:
     def test_benchmark_info(self):
         """Test getting benchmark information."""
         config = BenchmarkConfig(
-            benchmark_name="traffic_light_simple",
+            benchmark_name="traffic_light",
             agent_type=AgentType.SIMPLE_REFLEX
         )
         benchmark = TrafficLightBenchmark(config)
@@ -142,7 +142,7 @@ class TestTrafficLightBenchmarkIntegration:
         
         # Create benchmark
         config = BenchmarkConfig(
-            benchmark_name="traffic_light_simple",
+            benchmark_name="traffic_light",
             agent_type=AgentType.SIMPLE_REFLEX,
             num_tasks=3  # Limit for faster testing
         )
@@ -156,7 +156,7 @@ class TestTrafficLightBenchmarkIntegration:
         
         # Validate results
         assert result is not None
-        assert result.benchmark_name == "traffic_light_simple"
+        assert result.benchmark_name == "traffic_light"
         assert result.model_name == "gemini-2.5-flash"
         assert len(result.task_results) <= 3
         assert 0.0 <= result.overall_score <= 1.0
@@ -169,7 +169,7 @@ class TestTrafficLightBenchmarkIntegration:
             pytest.skip("No API key available for integration test")
         
         config = BenchmarkConfig(
-            benchmark_name="traffic_light_simple",
+            benchmark_name="traffic_light",
             agent_type=AgentType.SIMPLE_REFLEX
         )
         benchmark = TrafficLightBenchmark(config)

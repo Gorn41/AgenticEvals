@@ -262,7 +262,7 @@ class EcosystemSolver:
 
 
 @benchmark(
-    name="ecosystem_learning",
+    name="ecosystem",
     agent_type=AgentType.LEARNING,
     description="Tests an agent's ability to learn ecosystem dynamics through knowledge graph construction."
 )
@@ -345,7 +345,7 @@ class EcosystemLearningBenchmark(BaseBenchmark):
             new_training_scenarios = all_training_scenarios[start_index:i]
 
             task = Task(
-                task_id=f"ecosystem_learning_stage_{i}_episodes",
+                task_id=f"ecosystem_stage_{i}_episodes",
                 name=f"Ecosystem Learning after {i} Training Episodes",
                 description=f"Evaluate ecosystem prediction using knowledge graph after {i} total episodes.",
                 prompt="",

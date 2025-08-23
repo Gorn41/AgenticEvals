@@ -52,7 +52,7 @@ class TrialResult:
     displacement: float
 
 @benchmark(
-    name="ball_drop_learning",
+    name="ball_drop",
     agent_type=AgentType.LEARNING,
     description="Tests an agent's ability to learn through trial and error in a physics-based task."
 )

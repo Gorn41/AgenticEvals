@@ -62,7 +62,7 @@ class Schedule:
 
 
 @benchmark(
-    name="task_scheduling_utility_based",
+    name="task_scheduling",
     agent_type=AgentType.UTILITY_BASED,
     description="Assigns jobs to time slots to maximize utility."
 )
