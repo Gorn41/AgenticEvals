@@ -1,0 +1,17 @@
+# Default vLLM configuration for local inference.
+# Edit values as needed and pass with: --vllm-config vllm_config.yaml
+
+temperature: 0.3
+max_tokens: 32768
+# top_p: 0.9
+# top_k: 50
+# stop_sequences: ["\n\n"]
+
+# Engine/model options forwarded to vLLM LLM(...)
+additional_params:
+  # If omitted, we use --model as the HF model id
+  # hf_model: google/gemma-3-4b-it
+  dtype: bfloat16
+  tensor_parallel_size: 1
+  trust_remote_code: true
+  gpu_memory_utilization: 0.9

@@ -9,6 +9,7 @@ from dotenv import load_dotenv
 
 from .base import BaseModel, ModelConfig
 from .gemini import GeminiModel
+from .vllm import VLLMModel
 from ..utils.logging import get_logger
 from ..utils.config import get_config_manager
 
@@ -27,8 +28,14 @@ class ModelLoader:
         "gemini-pro": GeminiModel,
         "gemini-2.5-pro": GeminiModel,
         "gemini-2.5-flash": GeminiModel,
+        "gemini-2.5-flash-lite": GeminiModel,
+        "gemini-2.0-flash": GeminiModel,
+        "gemma-3-1b-it": GeminiModel,
         "gemma-3-4b-it": GeminiModel,
+        "gemma-3-12b-it": GeminiModel,
         "gemma-3-27b-it": GeminiModel,
+        "gemma-3n-e4b-it": GeminiModel,
+        "vllm": VLLMModel,
     }
     
     @classmethod

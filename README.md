@@ -34,7 +34,7 @@ You must run a Selenium MCP server at `SELENIUM_MCP_URL` before running `local_w
 The benchmark expects MCP tools: `browser.navigate`, `browser.click`, `browser.type`, `browser.submit`,
 `browser.clearCookies`, `browser.getDomSummary`.
 
-Or set manually:
+You can also set API keys and environment variables manually:
 ```bash
 export GOOGLE_API_KEY="your-gemini-api-key"
 ```
@@ -77,6 +77,83 @@ For more detailed diagnostic information from each task, use the `--verbose` fla
 ```bash
 python3 run.py --model gemma-3-27b-it --verbose
 ```
+
+### Local Inference via vLLM (Open Source Models)
+
+You can run supported open-source models locally using vLLM instead of remote APIs. Install vLLM (added to requirements.txt) and run:
+
+```bash
+# Example using Gemma-2 Instruct weights from Hugging Face
+python3 run.py --local --model google/gemma-3-4b-it --wait-seconds 0
+```
+
+You can also provide a YAML config to control vLLM engine parameters and sampling settings. A default `vllm_config.yaml` is included at the repo root—edit it as needed:
+
+```yaml
+# vllm_config.yaml
+temperature: 0.3
+max_tokens: 32768
+additional_params:
+  hf_model: google/gemma-3-4b-it  # optional if provided via --model
+  dtype: bfloat16
+  tensor_parallel_size: 1
+  trust_remote_code: true
+  gpu_memory_utilization: 0.9
+```
+
+Then run:
+
+```bash
+python3 run.py --local --model google/gemma-3-4b-it --vllm-config vllm_config.yaml
+```
+
+Notes:
+- Proprietary endpoints (e.g., `gemini*`) cannot be loaded via vLLM and will raise an error.
+- vLLM loads models from Hugging Face or local paths specified via `additional_params.hf_model`.
+- Some HF models require authentication; set `HUGGING_FACE_HUB_TOKEN` in `.env` if needed. Use `python3 setup_env.py` to add it interactively.
+
+### Validation and Cross-Validation
+
+Run with built-in cross-validation:
+
+```bash
+python3 run.py --model gemma-3-4b-it --validate --wait-seconds 0
+```
+
+Provide an external validation config to test predictive power on your own validation benchmarks:
+
+```yaml
+# validation_benchmarks.yaml
+validation_benchmarks:
+  - name: my_val_1
+    agent_types: ["simple_reflex", "goal_based"]
+    true_score: 0.72
+  - name: my_val_2
+    agent_types: ["learning"]
+    true_score: 0.55
+    weights: [1.0]  # optional; if omitted, equal weights across agent_types
+```
+
+Run with config:
+
+```bash
+python3 run.py --model gemma-3-4b-it --validate --validation-config validation_benchmarks.yaml
+```
+
+This prints:
+- Within-agent-type leave-one-out: predicts each benchmark using the mean of the other benchmarks in the same agent type.
+- Cross-agent-type leave-one-out: predicts benchmarks of an agent type using the global mean of other agent types.
+- External validation: predicts given validation benchmarks as (weighted) averages of agent-type means and reports MAE/RMSE/R².
+
+### Configure Wait Times Between Calls/Tasks
+
+Multi-step benchmarks wait between API calls to respect rate limits, and the runner waits between tasks. You can configure this with `--wait-seconds` (default 15.0). Set to `0` to disable waits.
+
+```bash
+python3 run.py --model gemma-3-27b-it --wait-seconds 0
+```
+
+This value is propagated to all benchmarks and used for any internal delays.
 
 ## Project Structure
 

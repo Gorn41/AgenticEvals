@@ -698,8 +698,10 @@ class EventConflictDetectionBenchmark(BaseBenchmark):
                     per_turn_f1s.append(f1)
 
                     if turn < num_turns:
-                        await asyncio.sleep(15)
-                        delays_applied += 1
+                        wait_seconds = float(self.config.additional_params.get("wait_seconds", 15.0)) if getattr(self, "config", None) else 15.0
+                        if wait_seconds > 0:
+                            await asyncio.sleep(wait_seconds)
+                            delays_applied += 1
                 else:
                     final_tags = self._parse_final_response(response.text, allowed_tags)
                     if final_tags is None:

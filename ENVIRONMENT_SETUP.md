@@ -13,8 +13,10 @@ python3 setup_env.py
 This script will:
 1. Create a `.env` file from the template
 2. Prompt you for your Gemini API key
-3. Test the configuration
-4. Provide troubleshooting help if needed
+3. Optionally prompt you for a Hugging Face Hub token (for local vLLM models)
+4. Configure the Selenium MCP endpoint (used by a web benchmark)
+5. Test the configuration
+6. Provide troubleshooting help if needed
 
 ## Manual Setup
 
@@ -25,13 +27,14 @@ Copy the example environment file:
 cp .env.example .env
 ```
 
-### 2. Configure API Key
+### 2. Configure API Keys
 
 Edit the `.env` file and replace the placeholder with your actual API key:
 
 ```bash
 # .env
 GOOGLE_API_KEY=your_gemini_api_key_here
+HUGGING_FACE_HUB_TOKEN=your_hf_token_if_needed
 ```
 
 Or use the alternative key name:
@@ -46,7 +49,11 @@ GOOGLE_API_KEY=your_actual_gemini_api_key
 3. Copy the generated key
 4. Paste it into your `.env` file
 
-### 4. Test Your Setup
+### 4. Optional: Get a Hugging Face Hub Token
+
+If you plan to use local vLLM with gated models, create a token at: https://huggingface.co/settings/tokens and set `HUGGING_FACE_HUB_TOKEN` in your `.env`.
+
+### 5. Test Your Setup
 
 ```bash
 python3 quick_start.py
@@ -63,6 +70,7 @@ python3 quick_start.py
 
 - `AGENTIC_EVALS_LOG_LEVEL`: Set to `DEBUG`, `INFO`, `WARNING`, or `ERROR`
 - `AGENTIC_EVALS_CONFIG_FILE`: Path to custom configuration file
+- `HUGGING_FACE_HUB_TOKEN`: Your Hugging Face access token (for gated models via vLLM)
 
 ## Shell-Specific Setup
 

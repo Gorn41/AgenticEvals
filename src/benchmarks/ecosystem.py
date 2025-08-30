@@ -475,7 +475,9 @@ class EcosystemLearningBenchmark(BaseBenchmark):
             api_start = time.time()
             response = await model.generate(prompt)
             api_time = time.time() - api_start
-            await asyncio.sleep(15)
+            wait_seconds = float(self.config.additional_params.get("wait_seconds", 15.0)) if getattr(self, "config", None) else 15.0
+            if wait_seconds > 0:
+                await asyncio.sleep(wait_seconds)
             predicted_populations, predicted_relationships = self._parse_prediction(response.text)
         except Exception as e:
             logger.error(f"API call failed during episode {episode_id}: {e}")

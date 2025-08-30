@@ -24,15 +24,16 @@ from src.benchmarks.local_web_app import stop_server as stop_flask_server
 from src.benchmarks.selenium_mcp_server import stop_mcp_server
 from src.models.loader import load_model_from_name
 from src.benchmark.base import TaskResult, BaseBenchmark
+from src.benchmark.validation import within_type_loo, cross_type_loo, evaluate_external_validation
 
-async def test_benchmark(model, benchmark_name: str, verbose: bool = False) -> Dict[str, Any]:
+async def test_benchmark(model, benchmark_name: str, verbose: bool = False, wait_seconds: float = 15.0) -> Dict[str, Any]:
     """Test a model on a given benchmark."""
     print(f"\n Running Benchmark: {benchmark_name}")
     print("=" * 60)
     
     # Load benchmark
     try:
-        benchmark = load_benchmark(benchmark_name)
+        benchmark = load_benchmark(benchmark_name, additional_params={"wait_seconds": wait_seconds})
     except ValueError as e:
         print(f"   [ERROR] Could not load benchmark: {e}")
         return {
@@ -134,9 +135,9 @@ async def test_benchmark(model, benchmark_name: str, verbose: bool = False) -> D
             results.append(result)
         
         # Delay between tasks
-        if i < len(tasks) - 1:
-            print(f"   ...waiting 15s before next task...")
-            await asyncio.sleep(15)
+        if i < len(tasks) - 1 and wait_seconds > 0:
+            print(f"   ...waiting {int(wait_seconds)}s before next task...")
+            await asyncio.sleep(wait_seconds)
     
     total_time = time.time() - total_start_time
     
@@ -282,7 +283,7 @@ def plot_results(all_summaries: List[Dict[str, Any]], agent_type_results: Dict[s
     print(f"Agent type performance plot saved to {results_dir / f'agent_type_performance{file_suffix}.png'}")
     plt.show()
 
-async def main(model_name: str, benchmarks_to_run: Optional[List[str]] = None, plot: bool = False, verbose: bool = False):
+async def main(model_name: str, benchmarks_to_run: Optional[List[str]] = None, plot: bool = False, verbose: bool = False, wait_seconds: float = 15.0, local: bool = False, vllm_config: Optional[str] = None, validate: bool = False, validation_config: Optional[str] = None):
     """Run comprehensive evaluation of a model on all benchmarks."""
     
     # Load environment variables
@@ -303,7 +304,32 @@ async def main(model_name: str, benchmarks_to_run: Optional[List[str]] = None, p
     try:
         # Load the specified model
         print(f"\n Loading {model_name}...")
-        model = load_model_from_name(model_name, api_key=api_key, temperature=0.3, max_tokens=30000)
+        if local:
+            # Load a local vLLM model. We use the 'vllm' registry key and pass config via YAML file if provided.
+            import yaml
+            additional_params = {"hf_model": model_name}
+            if vllm_config:
+                with open(vllm_config, 'r') as f:
+                    cfg = yaml.safe_load(f) or {}
+                # Merge YAML 'additional_params' and top-level overrides
+                yaml_additional = cfg.get("additional_params", {})
+                additional_params.update(yaml_additional)
+                # Allow top-level common keys too
+                for k in ("temperature", "max_tokens", "top_p", "top_k", "stop_sequences"):
+                    if k in cfg:
+                        # These are passed positionally to loader below
+                        pass
+            model = load_model_from_name(
+                "vllm",
+                temperature=0.3 if not vllm_config else cfg.get("temperature", 0.3),
+                max_tokens=30000 if not vllm_config else cfg.get("max_tokens", 30000),
+                top_p=None if not vllm_config else cfg.get("top_p"),
+                top_k=None if not vllm_config else cfg.get("top_k"),
+                stop_sequences=None if not vllm_config else cfg.get("stop_sequences"),
+                additional_params=additional_params,
+            )
+        else:
+            model = load_model_from_name(model_name, api_key=api_key, temperature=0.3, max_tokens=30000)
         print(f"Model loaded: {model.model_name}")
         
         # Get all available benchmarks
@@ -316,7 +342,7 @@ async def main(model_name: str, benchmarks_to_run: Optional[List[str]] = None, p
         all_summaries = []
         
         for benchmark_name in all_benchmark_names:
-            summary = await test_benchmark(model, benchmark_name, verbose=verbose)
+            summary = await test_benchmark(model, benchmark_name, verbose=verbose, wait_seconds=wait_seconds)
             if 'error' not in summary:
                 all_summaries.append(summary)
 
@@ -380,6 +406,33 @@ async def main(model_name: str, benchmarks_to_run: Optional[List[str]] = None, p
                 'std_tokens': np.std(data['output_tokens']) if data['output_tokens'] else 0.0,
             }
         
+        # Optional validation / cross-validation
+        if validate:
+            print("\n VALIDATION (Leave-One-Out within agent type):")
+            loo_within = within_type_loo(all_summaries)
+            for agent_type, res in loo_within.items():
+                m = res['metrics']
+                print(f"   {agent_type}: MAE={m['mae']:.3f}, RMSE={m['rmse']:.3f}, R2={m['r2']:.3f}")
+
+            print("\n VALIDATION (Leave-One-Agent-Type-Out using global mean):")
+            loo_cross = cross_type_loo(all_summaries)
+            for agent_type, res in loo_cross.items():
+                m = res['metrics']
+                print(f"   Omit {agent_type}: MAE={m['mae']:.3f}, RMSE={m['rmse']:.3f}, R2={m['r2']:.3f}")
+
+            if validation_config:
+                try:
+                    import yaml
+                    with open(validation_config, 'r') as f:
+                        cfg = yaml.safe_load(f) or {}
+                    specs = cfg.get('validation_benchmarks', []) or []
+                    external = evaluate_external_validation(specs, agent_type_aggregated)
+                    m = external['metrics']
+                    print("\n EXTERNAL VALIDATION (user-provided benchmarks):")
+                    print(f"   MAE={m['mae']:.3f}, RMSE={m['rmse']:.3f}, R2={m['r2']:.3f}")
+                except Exception as ve:
+                    print(f"[WARN] External validation config error: {ve}")
+
         print("\n AGGREGATE METRICS BY AGENT TYPE:")
         print("=" * 70)
         for agent_type, data in agent_type_aggregated.items():
@@ -424,11 +477,44 @@ if __name__ == "__main__":
         default="gemma-3-27b-it",
         help="The model to test. Defaults to gemma-3-27b-it."
     )
+    parser.add_argument(
+        "--local",
+        action="store_true",
+        help="Use a local vLLM backend instead of remote API."
+    )
+    parser.add_argument(
+        "--vllm-config",
+        type=str,
+        default=None,
+        help="Path to YAML config file for vLLM (hf_model and engine params)."
+    )
+    parser.add_argument(
+        "--validate",
+        action="store_true",
+        help="Run validation and cross-validation analysis on results."
+    )
+    parser.add_argument(
+        "--validation-config",
+        type=str,
+        default=None,
+        help="Path to YAML file defining external validation benchmarks."
+    )
+    parser.add_argument(
+        "--wait-seconds",
+        type=float,
+        default=15.0,
+        help="Seconds to wait between tasks and multi-turn API calls. Set 0 to disable. Default: 15.0"
+    )
     args = parser.parse_args()
 
     asyncio.run(main(
         model_name=args.model,
         benchmarks_to_run=args.benchmarks or None,
         plot=args.plot,
-        verbose=args.verbose
+        verbose=args.verbose,
+        wait_seconds=args.wait_seconds,
+        local=args.local,
+        vllm_config=args.vllm_config,
+        validate=args.validate,
+        validation_config=args.validation_config
     ))

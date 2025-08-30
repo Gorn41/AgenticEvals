@@ -206,10 +206,12 @@ class SimulatedMarketLearningBenchmark(BaseBenchmark):
         shares = 0
         total_output_tokens = 0
         api_calls = 0
+        accumulated_call_time = 0.0
         actions_taken: List[str] = []
         event_actions: List[str] = []  # Only BUY/SELL with time and price
         
         total_steps = len(market_data)
+        wait_seconds = float(self.config.additional_params.get("wait_seconds", 15.0)) if getattr(self, "config", None) else 15.0
         for step in range(total_steps - 1):
             historical_prices = market_data[:step+1]
             current_price = market_data[step]
@@ -218,10 +220,12 @@ class SimulatedMarketLearningBenchmark(BaseBenchmark):
             
             if self.memory_corpus:
                 prompt += self._retrieve_memories(historical_prices)
-
+            call_started_at = time.time()
             response = await model.generate(prompt)
+            accumulated_call_time += (time.time() - call_started_at)
             api_calls += 1
-            await asyncio.sleep(15) # Prevent rate limiting
+            if wait_seconds > 0:
+                await asyncio.sleep(wait_seconds) # Prevent rate limiting
             
             total_output_tokens += response.completion_tokens or 0
             
@@ -258,7 +262,7 @@ class SimulatedMarketLearningBenchmark(BaseBenchmark):
             final_shares=float(shares)
         )
         
-        return episode_result, {"output_tokens": total_output_tokens, "api_calls": api_calls}
+        return episode_result, {"output_tokens": total_output_tokens, "api_calls": api_calls, "api_time": accumulated_call_time}
 
     def _summarize_market(self, prices: List[float]) -> str:
         """Creates a richer textual summary of the market's behavior."""
@@ -424,6 +428,7 @@ Given the uptrend and limited steps remaining, I prefer to hold.
         
         total_output_tokens = 0
         total_api_calls = 0
+        accumulated_call_time = 0.0
 
         # --- Training Phase ---
         for i in range(num_training):
@@ -432,6 +437,7 @@ Given the uptrend and limited steps remaining, I prefer to hold.
             self.memory_corpus.append(episode_result)
             total_output_tokens += metrics.get("output_tokens", 0)
             total_api_calls += metrics.get("api_calls", 0)
+            accumulated_call_time += metrics.get("api_time", 0.0)
 
         # --- Testing Phase ---
         test_results = []
@@ -441,6 +447,7 @@ Given the uptrend and limited steps remaining, I prefer to hold.
             test_results.append(episode_result)
             total_output_tokens += metrics.get("output_tokens", 0)
             total_api_calls += metrics.get("api_calls", 0)
+            accumulated_call_time += metrics.get("api_time", 0.0)
             
         # --- Final Score Calculation ---
         agent_pnl = sum(r.pnl for r in test_results)
@@ -458,7 +465,8 @@ Given the uptrend and limited steps remaining, I prefer to hold.
         
         final_score = max(0.0, min(1.0, score)) # Clamp score between 0 and 1
 
-        actual_execution_time = (time.time() - start_time) - (total_api_calls * 15)
+        # Sum of API call durations across all steps/episodes; excludes intentional sleeps
+        actual_execution_time = accumulated_call_time
 
         return TaskResult(
             task_id=task.task_id,

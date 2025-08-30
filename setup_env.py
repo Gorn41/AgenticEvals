@@ -47,6 +47,18 @@ def get_api_key():
     return api_key
 
 
+def get_hf_token():
+    """Prompt user for Hugging Face Hub token (optional)."""
+    print("\nOptional: Provide a Hugging Face Hub token for gated/open models on Hugging Face.")
+    print("If you plan to run local models via vLLM and the model is gated, you'll need this token.")
+    print("Create a token at: https://huggingface.co/settings/tokens")
+    print()
+    token = input("Enter your HUGGING_FACE_HUB_TOKEN (or press Enter to skip): ").strip()
+    if not token:
+        print("No HF token provided. You can add it later to the .env file.")
+        return None
+    return token
+
 def get_mcp_endpoint():
     """Prompt user for a local Selenium MCP WebSocket URL."""
     print("\nOptional: Configure local Selenium MCP endpoint (for web navigation benchmark).")
@@ -85,6 +97,28 @@ def update_env_file(api_key: str):
     # Write back to file
     env_file.write_text("\n".join(updated_lines) + "\n")
     print(f"Updated {env_file} with your Gemini API key.")
+    return True
+
+
+def update_env_with_hf_token(token: str) -> bool:
+    """Add or update HUGGING_FACE_HUB_TOKEN in .env."""
+    env_file = Path(".env")
+    if not env_file.exists():
+        print("Error: .env file not found!")
+        return False
+    lines = env_file.read_text().splitlines()
+    updated_lines = []
+    updated = False
+    for line in lines:
+        if line.startswith("HUGGING_FACE_HUB_TOKEN="):
+            updated_lines.append(f"HUGGING_FACE_HUB_TOKEN={token}")
+            updated = True
+        else:
+            updated_lines.append(line)
+    if not updated:
+        updated_lines.append(f"HUGGING_FACE_HUB_TOKEN={token}")
+    env_file.write_text("\n".join(updated_lines) + "\n")
+    print(f"Updated {env_file} with HUGGING_FACE_HUB_TOKEN.")
     return True
 
 
@@ -152,16 +186,22 @@ def main():
     if not create_env_file():
         return 1
     
-    # Step 2: API Key Configuration
-    print("\nStep 2: API Key Configuration...")
+    # Step 2: API Key Configuration (Gemini)
+    print("\nStep 2: API Key Configuration (Gemini)...")
     api_key = get_api_key()
     
     if api_key:
         if not update_env_file(api_key):
             return 1
     
-    # Step 3: MCP Endpoint
-    print("\nStep 3: Local Selenium MCP Endpoint...")
+    # Step 3: Hugging Face Token (optional)
+    print("\nStep 3: Hugging Face Token (optional for vLLM)...")
+    hf_token = get_hf_token()
+    if hf_token:
+        update_env_with_hf_token(hf_token)
+
+    # Step 4: MCP Endpoint
+    print("\nStep 4: Local Selenium MCP Endpoint...")
     mcp_url = get_mcp_endpoint()
     if mcp_url:
         update_env_with_mcp(mcp_url)
@@ -169,8 +209,8 @@ def main():
         # Default to localhost if not provided
         update_env_with_mcp("ws://127.0.0.1:7007")
 
-    # Step 4: Test setup
-    print("\nStep 4: Testing configuration...")
+    # Step 5: Test setup
+    print("\nStep 5: Testing configuration...")
     if test_setup():
         print("\nSetup completed successfully!")
     else:

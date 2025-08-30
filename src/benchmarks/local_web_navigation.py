@@ -966,7 +966,9 @@ class LocalWebNavigationBenchmark(BaseBenchmark):
 
                 if not action or not isinstance(action, dict):
                     invalid_actions += 1
-                    await asyncio.sleep(15)
+                    wait_seconds = float(self.config.additional_params.get("wait_seconds", 15.0)) if getattr(self, "config", None) else 15.0
+                    if wait_seconds > 0:
+                        await asyncio.sleep(wait_seconds)
                     # proceed to next turn without applying action
                     continue
 
@@ -1051,7 +1053,9 @@ class LocalWebNavigationBenchmark(BaseBenchmark):
                 # Note: Exploration is unscored. Even if goal is encountered here,
                 # we do NOT return early; continue until budget is exhausted and proceed to exploitation.
 
-                await asyncio.sleep(15)
+                wait_seconds = float(self.config.additional_params.get("wait_seconds", 15.0)) if getattr(self, "config", None) else 15.0
+                if wait_seconds > 0:
+                    await asyncio.sleep(wait_seconds)
 
             # Phase 2: Exploitation — reset cookies/state to ensure constant optimal path
             browser.clear_cookies()

@@ -284,6 +284,7 @@ Your response must be a single JSON object.
     async def evaluate_task(self, task: Task, model: BaseModel) -> TaskResult:
         """Evaluates a single inventory management task."""
         start_time = time.time()
+        wait_seconds = float(self.config.additional_params.get("wait_seconds", 15.0)) if getattr(self, "config", None) else 15.0
         state = InventoryState.from_scenario(task.metadata)
         
         initial_prompt = self._create_initial_prompt(task.metadata)
@@ -291,6 +292,7 @@ Your response must be a single JSON object.
         turn_scores = []
         total_tokens_used = 0
         delays_applied = 0
+        accumulated_call_time = 0.0
         was_invalid_last_turn = False
         depletion_history: Dict[str, List[int]] = {name: [] for name in state.items.keys()}
 
@@ -298,8 +300,8 @@ Your response must be a single JSON object.
             state.turn = turn
             
             # Add delay for turns after the first one
-            if turn > 1:
-                await asyncio.sleep(15)
+            if turn > 1 and wait_seconds > 0:
+                await asyncio.sleep(wait_seconds)
                 delays_applied += 1
 
             # Prepare the prompt for the current turn
@@ -330,7 +332,9 @@ Current State (before your restock this turn):
 
 
             # Generate model response
+            call_started_at = time.time()
             response = await model.generate(prompt)
+            accumulated_call_time += (time.time() - call_started_at)
             if response.completion_tokens:
                 total_tokens_used += response.completion_tokens
 
@@ -362,7 +366,8 @@ Current State (before your restock this turn):
                 depletion_history[name].append(actual_depletion)
 
         # Final calculations
-        net_execution_time = (time.time() - start_time) - (delays_applied * 15)
+        # Sum of API call durations across turns; excludes intentional sleeps
+        net_execution_time = accumulated_call_time
         final_score = self._calculate_final_score(turn_scores)
         success = final_score > 0.7  # Define success as an average score > 0.7
 

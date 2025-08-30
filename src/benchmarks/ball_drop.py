@@ -127,6 +127,7 @@ class BallDropBenchmark(BaseBenchmark):
         
         total_output_tokens = 0
         total_api_calls = 0
+        accumulated_call_time = 0.0
 
         # --- Training Phase ---
         for i, scenario in enumerate(training_scenarios):
@@ -138,6 +139,7 @@ class BallDropBenchmark(BaseBenchmark):
             self._update_memory(self.memory, episode_result)
             total_output_tokens += metrics["output_tokens"]
             total_api_calls += metrics["api_calls"]
+            accumulated_call_time += metrics.get("api_time", 0.0)
 
         # --- Evaluation Phase ---
         eval_results = []
@@ -152,10 +154,11 @@ class BallDropBenchmark(BaseBenchmark):
             eval_results.append(eval_episode_result)
             total_output_tokens += eval_metrics["output_tokens"]
             total_api_calls += eval_metrics["api_calls"]
+            accumulated_call_time += eval_metrics.get("api_time", 0.0)
 
         # --- Final Calculation for this task ---
-        total_duration = time.time() - start_time
-        actual_execution_time = total_duration - (total_api_calls * 15)
+        # Measure execution as the sum of model API call durations (excludes intentional sleeps)
+        actual_execution_time = accumulated_call_time
 
         # Calculate score for each eval episode and average them
         episode_scores = []
@@ -200,12 +203,16 @@ class BallDropBenchmark(BaseBenchmark):
         )
 
         prompt = self._create_prompt(state, memory)
+        wait_seconds = float(self.config.additional_params.get("wait_seconds", 15.0)) if getattr(self, "config", None) else 15.0
         response = None
         action = None
         
         try:
+            call_started_at = time.time()
             response = await model.generate(prompt)
-            await asyncio.sleep(15)
+            call_time = time.time() - call_started_at
+            if wait_seconds > 0:
+                await asyncio.sleep(wait_seconds)
             action = self._parse_action(response.text)
         except Exception as e:
             logger.error(f"API call failed during episode {episode_id}: {e}")
@@ -237,7 +244,8 @@ class BallDropBenchmark(BaseBenchmark):
             displacement=displacement
         ), {
             "output_tokens": response.completion_tokens if response and response.completion_tokens else 0,
-            "api_calls": 1
+            "api_calls": 1,
+            "api_time": call_time if 'call_time' in locals() else 0.0
         }
 
     def _parse_action(self, response_text: str) -> AgentAction:

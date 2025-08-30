@@ -1,0 +1,11 @@
+# Example external validation benchmarks for AgenticEvals
+# Use with: --validate --validation-config validation_benchmarks.yaml
+
+validation_benchmarks:
+  - name: example_val_simple_goal
+    agent_types: ["simple_reflex", "goal_based"]
+    true_score: 0.70
+  - name: example_val_learning
+    agent_types: ["learning"]
+    true_score: 0.55
+    # weights: [1.0]  # optional; if provided, must match agent_types length

@@ -342,10 +342,14 @@ Your move:"""
         path_taken = [maze.start_pos]
         conversation_history = []
         delays_applied = 0
+        wait_seconds = float(self.config.additional_params.get("wait_seconds", 15.0)) if getattr(self, "config", None) else 15.0
+        accumulated_call_time = 0.0
         
         try:
             # Initial move
+            call_started_at = time.time()
             initial_response = await model.generate(task.prompt)
+            accumulated_call_time += (time.time() - call_started_at)
             conversation_history.append(("initial", task.prompt, initial_response.text))
             
             if initial_response.completion_tokens:
@@ -367,13 +371,16 @@ Your move:"""
             
             # Continue navigation until goal reached or max moves
             while not success and state.move_count < max_moves:
-                # Add 15s delay to respect rate limits
-                await asyncio.sleep(15)
-                delays_applied += 1
+                # Add delay to respect rate limits
+                if wait_seconds > 0:
+                    await asyncio.sleep(wait_seconds)
+                    delays_applied += 1
                 
                 # Create continuation prompt
                 continuation_prompt = self._create_continuation_prompt(maze, state, move)
+                call_started_at = time.time()
                 response = await model.generate(continuation_prompt)
+                accumulated_call_time += (time.time() - call_started_at)
                 conversation_history.append(("continuation", continuation_prompt, response.text))
                 
                 if response.completion_tokens:
@@ -397,8 +404,8 @@ Your move:"""
                     # Invalid move - count it but don't change position
                     state.move_count += 1
                 
-            total_execution_time = time.time() - start_time
-            net_execution_time = total_execution_time - (delays_applied * 15)
+            # Sum of API call durations across turns; excludes intentional sleeps
+            net_execution_time = accumulated_call_time
             
             # Calculate score
             score = self.calculate_score(task, success, state, path_taken)
@@ -428,8 +435,8 @@ Your move:"""
             )
             
         except Exception as e:
-            total_execution_time = time.time() - start_time
-            net_execution_time = total_execution_time - (delays_applied * 15)
+            # Even on error, report accumulated API durations only
+            net_execution_time = accumulated_call_time
             logger.error(f"Error evaluating maze task {task.task_id}: {e}")
             
             return TaskResult(
