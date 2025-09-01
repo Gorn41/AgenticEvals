@@ -83,7 +83,7 @@ python3 run.py --model gemma-3-27b-it --verbose
 You can run supported open-source models locally using vLLM instead of remote APIs. Install vLLM (added to requirements.txt) and run:
 
 ```bash
-# Example using Gemma-2 Instruct weights from Hugging Face
+# Example using Gemma-3 Instruct weights from Hugging Face
 python3 run.py --local --model google/gemma-3-4b-it --wait-seconds 0
 ```
 

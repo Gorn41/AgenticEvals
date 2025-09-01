@@ -47,6 +47,12 @@ async def test_benchmark(model, benchmark_name: str, verbose: bool = False, wait
     print(f"Total Tasks: {len(tasks)}")
     
     results = []
+
+    def _fmt3(x):
+        return f"{x:.3f}" if isinstance(x, (int, float)) else "N/A"
+
+    def _fmt2(x):
+        return f"{x:.2f}" if isinstance(x, (int, float)) else "N/A"
     total_start_time = time.time()
     
     for i, task in enumerate(tasks):
@@ -59,7 +65,7 @@ async def test_benchmark(model, benchmark_name: str, verbose: bool = False, wait
             
             # Show results
             status = "[PASS]" if result.success else "[FAIL]"
-            print(f"   Result: {status} (Score: {result.score:.3f})")
+            print(f"   Result: {status} (Score: {_fmt3(result.score)})")
             
             if result.metrics:
                 print(f"   Output Tokens: {result.metrics.get('output_tokens', 'N/A')}")
@@ -96,14 +102,14 @@ async def test_benchmark(model, benchmark_name: str, verbose: bool = False, wait
                     # Final summary metrics
                     print(f"   Ground Truth Tags: {m.get('ground_truth_tags', 'N/A')}")
                     print(f"   Final Predicted Tags: {m.get('final_predicted_tags', 'N/A')}")
-                    print(f"   Final Precision/Recall/F1: {m.get('final_precision','N/A'):.3f}/{m.get('final_recall','N/A'):.3f}/{m.get('final_f1','N/A'):.3f}")
+                    print(f"   Final Precision/Recall/F1: {_fmt3(m.get('final_precision'))}/{_fmt3(m.get('final_recall'))}/{_fmt3(m.get('final_f1'))}")
                     if 'final_parse_failed' in m:
                         print(f"   Final Parse Failed: {m.get('final_parse_failed')}")
                     # Dynamics across turns
                     if 'per_turn_precision' in m and 'per_turn_recall' in m and 'per_turn_f1' in m:
-                        turn_p = ", ".join(f"{x:.2f}" for x in m['per_turn_precision'])
-                        turn_r = ", ".join(f"{x:.2f}" for x in m['per_turn_recall'])
-                        turn_f1 = ", ".join(f"{x:.2f}" for x in m['per_turn_f1'])
+                        turn_p = ", ".join(_fmt2(x) for x in m['per_turn_precision'])
+                        turn_r = ", ".join(_fmt2(x) for x in m['per_turn_recall'])
+                        turn_f1 = ", ".join(_fmt2(x) for x in m['per_turn_f1'])
                         print(f"   Per-Turn Precision: [{turn_p}]")
                         print(f"   Per-Turn Recall:    [{turn_r}]")
                         print(f"   Per-Turn F1:        [{turn_f1}]")
@@ -112,12 +118,12 @@ async def test_benchmark(model, benchmark_name: str, verbose: bool = False, wait
                     if 'flip_flops' in m:
                         print(f"   Flip-Flops: {m['flip_flops']}")
                     if 'monotonic_recall' in m:
-                        print(f"   Monotonic Recall: {m['monotonic_recall']:.3f}")
+                        print(f"   Monotonic Recall: {_fmt3(m.get('monotonic_recall'))}")
                     if 'spurious_persistence' in m:
-                        print(f"   Spurious Persistence: {m['spurious_persistence']:.3f}")
+                        print(f"   Spurious Persistence: {_fmt3(m.get('spurious_persistence'))}")
 
             if result.execution_time is not None:
-                print(f"   Execution Time: {result.execution_time:.2f}s")
+                print(f"   Execution Time: {_fmt2(result.execution_time)}s")
             
         except Exception as e:
             print(f"   [ERROR] {e}")
@@ -143,8 +149,8 @@ async def test_benchmark(model, benchmark_name: str, verbose: bool = False, wait
     
     # Calculate summary statistics
     successful_tasks = [r for r in results if r.success]
-    scores = [r.score for r in results]
-    execution_times = [r.execution_time for r in results if r.execution_time is not None]
+    scores = [r.score for r in results if isinstance(r.score, (int, float))]
+    execution_times = [r.execution_time for r in results if isinstance(r.execution_time, (int, float))]
     output_tokens = [r.metrics.get('output_tokens', 0) for r in results if r.metrics]
 
     summary = {
@@ -165,10 +171,10 @@ async def test_benchmark(model, benchmark_name: str, verbose: bool = False, wait
     
     print(f"\n {benchmark_name.upper()} BENCHMARK SUMMARY:")
     print(f"   Success Rate: {summary['success_rate']:.1%} ({summary['successful_tasks']}/{summary['total_tasks']})")
-    print(f"   Average Score: {summary['average_score']:.3f} (±{summary['std_dev_score']:.3f})")
-    print(f"   Average Time per Task: {summary['average_time']:.2f}s (±{summary['std_dev_time']:.2f}s)")
+    print(f"   Average Score: {_fmt3(summary['average_score'])} (±{_fmt3(summary['std_dev_score'])})")
+    print(f"   Average Time per Task: {_fmt2(summary['average_time'])}s (±{_fmt2(summary['std_dev_time'])}s)")
     print(f"   Average Output Tokens per Task: {summary['average_output_tokens']:.1f} (±{summary['std_dev_output_tokens']:.1f})")
-    print(f"   Total Time (with delays): {summary['total_time']:.2f}s")
+    print(f"   Total Time (with delays): {_fmt2(summary['total_time'])}s")
     
     return summary
 
@@ -353,8 +359,8 @@ async def main(model_name: str, benchmarks_to_run: Optional[List[str]] = None, p
         for summary in all_summaries:
             print(f"\n BENCHMARK: {summary['benchmark_name']}")
             print(f"   - Success Rate: {summary['success_rate']:.1%}")
-            print(f"   - Average Score: {summary['average_score']:.3f} (±{summary['std_dev_score']:.3f})")
-            print(f"   - Avg Time: {summary['average_time']:.2f}s (±{summary['std_dev_time']:.2f}s)")
+            print(f"   - Average Score: {_fmt3(summary['average_score'])} (±{_fmt3(summary['std_dev_score'])})")
+            print(f"   - Avg Time: {_fmt2(summary['average_time'])}s (±{_fmt2(summary['std_dev_time'])}s)")
             print(f"   - Avg Output Tokens: {summary['average_output_tokens']:.1f} (±{summary['std_dev_output_tokens']:.1f})")
 
         total_tasks = sum(s['total_tasks'] for s in all_summaries)
@@ -373,8 +379,8 @@ async def main(model_name: str, benchmarks_to_run: Optional[List[str]] = None, p
         print(f"   Total Benchmarks Tested: {len(all_summaries)}")
         print(f"   Total Tasks: {total_tasks}")
         print(f"   Overall Success Rate: {overall_success_rate:.1%} ({total_successful}/{total_tasks})")
-        print(f"   Weighted Average Score: {weighted_avg_score:.3f}")
-        print(f"   Total Evaluation Time: {total_time:.1f}s ({total_time/60:.1f} minutes)")
+        print(f"   Weighted Average Score: {_fmt3(weighted_avg_score)}")
+        print(f"   Total Evaluation Time: {_fmt2(total_time)}s ({total_time/60:.1f} minutes)")
         # Auto-stop dev servers if local_web_navigation was run
         try:
             if any(s['benchmark_name'] == 'local_web_navigation' for s in all_summaries):
@@ -420,13 +426,13 @@ async def main(model_name: str, benchmarks_to_run: Optional[List[str]] = None, p
             loo_within = within_type_loo(all_summaries)
             for agent_type, res in loo_within.items():
                 m = res['metrics']
-                print(f"   {agent_type}: MAE={m['mae']:.3f}, RMSE={m['rmse']:.3f}, R2={m['r2']:.3f}")
+                print(f"   {agent_type}: MAE={_fmt3(m.get('mae'))}, RMSE={_fmt3(m.get('rmse'))}, R2={_fmt3(m.get('r2'))}")
 
             print("\n VALIDATION (Leave-One-Agent-Type-Out using global mean):")
             loo_cross = cross_type_loo(all_summaries)
             for agent_type, res in loo_cross.items():
                 m = res['metrics']
-                print(f"   Omit {agent_type}: MAE={m['mae']:.3f}, RMSE={m['rmse']:.3f}, R2={m['r2']:.3f}")
+                print(f"   Omit {agent_type}: MAE={_fmt3(m.get('mae'))}, RMSE={_fmt3(m.get('rmse'))}, R2={_fmt3(m.get('r2'))}")
 
             if validation_config:
                 try:
@@ -437,7 +443,7 @@ async def main(model_name: str, benchmarks_to_run: Optional[List[str]] = None, p
                     external = evaluate_external_validation(specs, agent_type_aggregated)
                     m = external['metrics']
                     print("\n EXTERNAL VALIDATION (user-provided benchmarks):")
-                    print(f"   MAE={m['mae']:.3f}, RMSE={m['rmse']:.3f}, R2={m['r2']:.3f}")
+                    print(f"   MAE={_fmt3(m.get('mae'))}, RMSE={_fmt3(m.get('rmse'))}, R2={_fmt3(m.get('r2'))}")
                 except Exception as ve:
                     print(f"[WARN] External validation config error: {ve}")
 
@@ -445,8 +451,8 @@ async def main(model_name: str, benchmarks_to_run: Optional[List[str]] = None, p
         print("=" * 70)
         for agent_type, data in agent_type_aggregated.items():
             print(f"\n Agent Type: {agent_type}")
-            print(f"   - Avg Score: {data['mean_score']:.3f} (±{data['std_score']:.3f})")
-            print(f"   - Avg Execution Time: {data['mean_time']:.2f}s (±{data['std_time']:.2f}s)")
+            print(f"   - Avg Score: {_fmt3(data['mean_score'])} (±{_fmt3(data['std_score'])})")
+            print(f"   - Avg Execution Time: {_fmt2(data['mean_time'])}s (±{_fmt2(data['std_time'])}s)")
             print(f"   - Avg Output Tokens: {data['mean_tokens']:.1f} (±{data['std_tokens']:.1f})")
 
         print(f"\nEvaluation complete! Model tested on {total_tasks} tasks across {len(all_summaries)} benchmarks.")
