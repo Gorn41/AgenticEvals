@@ -383,27 +383,35 @@ async def main(model_name: str, benchmarks_to_run: Optional[List[str]] = None, p
         except Exception:
             pass
         
-        # Aggregate results by agent type
+        # Aggregate results by agent type (equal weight per benchmark)
         agent_type_results = {}
         for summary in all_summaries:
             agent_type = summary['agent_type']
             if agent_type not in agent_type_results:
-                agent_type_results[agent_type] = {'scores': [], 'execution_times': [], 'output_tokens': [], 'num_tasks': 0}
-            
-            agent_type_results[agent_type]['scores'].extend([r.score for r in summary['results']])
-            agent_type_results[agent_type]['execution_times'].extend([r.execution_time for r in summary['results'] if r.execution_time is not None])
-            agent_type_results[agent_type]['output_tokens'].extend([r.metrics.get('output_tokens', 0) for r in summary['results']])
-            agent_type_results[agent_type]['num_tasks'] += summary['total_tasks']
+                agent_type_results[agent_type] = {
+                    'benchmark_scores': [],
+                    'benchmark_times': [],
+                    'benchmark_tokens': [],
+                    'num_benchmarks': 0,
+                }
+
+            agent_type_results[agent_type]['benchmark_scores'].append(summary.get('average_score', 0.0))
+            agent_type_results[agent_type]['benchmark_times'].append(summary.get('average_time', 0.0))
+            agent_type_results[agent_type]['benchmark_tokens'].append(summary.get('average_output_tokens', 0.0))
+            agent_type_results[agent_type]['num_benchmarks'] += 1
 
         agent_type_aggregated = {}
         for agent_type, data in agent_type_results.items():
+            scores = data['benchmark_scores']
+            times = data['benchmark_times']
+            tokens = data['benchmark_tokens']
             agent_type_aggregated[agent_type] = {
-                'mean_score': np.mean(data['scores']) if data['scores'] else 0.0,
-                'std_score': np.std(data['scores']) if data['scores'] else 0.0,
-                'mean_time': np.mean(data['execution_times']) if data['execution_times'] else 0.0,
-                'std_time': np.std(data['execution_times']) if data['execution_times'] else 0.0,
-                'mean_tokens': np.mean(data['output_tokens']) if data['output_tokens'] else 0.0,
-                'std_tokens': np.std(data['output_tokens']) if data['output_tokens'] else 0.0,
+                'mean_score': float(np.mean(scores)) if scores else 0.0,
+                'std_score': float(np.std(scores)) if scores else 0.0,
+                'mean_time': float(np.mean(times)) if times else 0.0,
+                'std_time': float(np.std(times)) if times else 0.0,
+                'mean_tokens': float(np.mean(tokens)) if tokens else 0.0,
+                'std_tokens': float(np.std(tokens)) if tokens else 0.0,
             }
         
         # Optional validation / cross-validation
