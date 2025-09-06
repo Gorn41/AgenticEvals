@@ -61,18 +61,29 @@ class VLLMModel(BaseModel):
             "trust_remote_code",
             "download_dir",
             "gpu_memory_utilization",
+            "max_num_batched_tokens",
         ):
             if key in config.additional_params:
                 engine_kwargs[key] = config.additional_params[key]
+
+        # Ensure a higher batch token budget unless explicitly overridden
+        engine_kwargs.setdefault("max_num_batched_tokens", 32768)
 
         self._hf_model = hf_model
         self._engine = LLM(model=hf_model, **engine_kwargs)
 
     def _make_sampling_params(self, **overrides) -> "SamplingParams":
         temperature = overrides.get("temperature", self.config.temperature)
-        max_tokens = overrides.get("max_tokens", self.config.max_tokens or 512)
-        top_p = overrides.get("top_p", self.config.top_p)
-        top_k = overrides.get("top_k", self.config.top_k)
+        max_tokens = overrides.get("max_tokens", self.config.max_tokens or 32768)
+
+        # Normalize sampling params to avoid passing None into vLLM
+        raw_top_p = overrides.get("top_p", self.config.top_p)
+        top_p = 1.0 if raw_top_p is None else float(raw_top_p)
+
+        raw_top_k = overrides.get("top_k", self.config.top_k)
+        # vLLM uses -1 to disable top-k; coerce None to -1
+        top_k = -1 if raw_top_k is None else int(raw_top_k)
+
         stop = overrides.get("stop_sequences", self.config.stop_sequences)
         return SamplingParams(
             temperature=temperature,
@@ -85,7 +96,12 @@ class VLLMModel(BaseModel):
     def generate_sync(self, prompt: str, **kwargs) -> ModelResponse:
         sampling_params = self._make_sampling_params(**kwargs)
         start = time.time()
-        outputs = self._engine.generate([prompt], sampling_params)
+        # Disable tqdm progress to avoid blocking output/UI
+        try:
+            outputs = self._engine.generate([prompt], sampling_params, use_tqdm=False)
+        except TypeError:
+            # Fallback for older vLLM versions without use_tqdm argument
+            outputs = self._engine.generate([prompt], sampling_params)
         latency = time.time() - start
 
         output = outputs[0]

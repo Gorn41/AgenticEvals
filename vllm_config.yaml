@@ -15,3 +15,5 @@ additional_params:
   tensor_parallel_size: 1
   trust_remote_code: true
   gpu_memory_utilization: 0.9
+  max_num_batched_tokens: 32768
+  max_model_len: 13648
