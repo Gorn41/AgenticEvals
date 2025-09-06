@@ -125,3 +125,79 @@ def benchmark(name: str, agent_type: AgentType, description: str = ""):
         register_benchmark(name, cls, agent_type, description)
         return cls
     return decorator 
+
+
+# -------------------- Validation Benchmark Registry --------------------
+
+class ValidationBenchmarkRegistry:
+    """Registry for validation-only benchmarks (can map to multiple agent types)."""
+
+    def __init__(self):
+        self._benchmarks: Dict[str, Type[BaseBenchmark]] = {}
+        self._agent_types_map: Dict[str, List[AgentType]] = {}
+        self._description_map: Dict[str, str] = {}
+
+    def register(self, name: str, benchmark_class: Type[BaseBenchmark], agent_types: List[AgentType], description: str = ""):
+        if name in self._benchmarks:
+            logger.warning(f"Overriding existing validation benchmark: {name}")
+        self._benchmarks[name] = benchmark_class
+        self._agent_types_map[name] = list(agent_types or [])
+        self._description_map[name] = description
+        logger.info(f"Registered validation benchmark: {name} (types: {[t.value for t in agent_types]})")
+
+    def unregister(self, name: str):
+        if name in self._benchmarks:
+            del self._benchmarks[name]
+            del self._agent_types_map[name]
+            del self._description_map[name]
+            logger.info(f"Unregistered validation benchmark: {name}")
+        else:
+            logger.warning(f"Validation benchmark not found for unregistration: {name}")
+
+    def get_benchmark_class(self, name: str) -> Optional[Type[BaseBenchmark]]:
+        return self._benchmarks.get(name)
+
+    def get_agent_types(self, name: str) -> List[AgentType]:
+        return list(self._agent_types_map.get(name, []))
+
+    def get_description(self, name: str) -> str:
+        return self._description_map.get(name, "")
+
+    def list_benchmarks(self) -> List[str]:
+        return list(self._benchmarks.keys())
+
+    def get_registry_info(self) -> Dict:
+        return {
+            "total_validation_benchmarks": len(self._benchmarks),
+            "validation_benchmarks": {
+                name: {
+                    "agent_types": [t.value for t in self._agent_types_map.get(name, [])],
+                    "description": self._description_map.get(name, ""),
+                    "class": self._benchmarks[name].__name__,
+                }
+                for name in self._benchmarks.keys()
+            }
+        }
+
+
+_validation_registry = ValidationBenchmarkRegistry()
+
+
+def get_validation_registry() -> ValidationBenchmarkRegistry:
+    return _validation_registry
+
+
+def register_validation_benchmark(name: str, benchmark_class: Type[BaseBenchmark], agent_types: List[AgentType], description: str = ""):
+    _validation_registry.register(name, benchmark_class, agent_types, description)
+
+
+def unregister_validation_benchmark(name: str):
+    _validation_registry.unregister(name)
+
+
+def validation_benchmark(name: str, agent_types: List[AgentType], description: str = ""):
+    """Decorator to register a validation benchmark class with multiple agent types."""
+    def decorator(cls: Type[BaseBenchmark]) -> Type[BaseBenchmark]:
+        register_validation_benchmark(name, cls, agent_types, description)
+        return cls
+    return decorator

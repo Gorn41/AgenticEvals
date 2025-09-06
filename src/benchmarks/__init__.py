@@ -18,6 +18,7 @@ from . import event_conflict_detection
 from . import local_web_navigation
 from . import manufacturing_line_optimization
 from . import ecosystem
+from . import ev_charging_policy
 
 __all__ = [
     "traffic_light",
@@ -35,4 +36,5 @@ __all__ = [
     "local_web_navigation",
     "manufacturing_line_optimization",
     "ecosystem",
+    "ev_charging_policy",
 ]

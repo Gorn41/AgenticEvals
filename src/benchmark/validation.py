@@ -113,49 +113,31 @@ def evaluate_external_validation(
     agent_type_aggregated: Dict[str, Dict[str, float]],
 ) -> Dict[str, Any]:
     """
-    Evaluate external validation benchmarks.
+    Produce prediction proxies for external validation benchmarks based on
+    equal-weight averages of listed agent types' mean scores.
 
     Each spec: {
       name: str,
-      agent_types: List[str],
-      true_score: float,
-      weights: Optional[List[float]]  # if provided, same length as agent_types
+      agent_types: List[str]
     }
 
-    Prediction = weighted (or equal-weight) average of agent_type mean_score over listed types.
+    Returns items with {name, agent_types, pred}.
     """
     items: List[Dict[str, Any]] = []
-    pairs: List[Tuple[float, float]] = []
 
     for spec in validation_specs:
         types = spec.get("agent_types") or []
-        weights = spec.get("weights")
-        if weights and len(weights) != len(types):
-            raise ValueError(f"weights length must match agent_types for validation spec {spec}")
-
         means: List[float] = []
         for t in types:
             agg = agent_type_aggregated.get(t)
             means.append(float(agg.get("mean_score", 0.0)) if agg else 0.0)
-
-        if weights:
-            s = sum(weights) or 1.0
-            norm_w = [w / s for w in weights]
-            pred = sum(m * w for m, w in zip(means, norm_w))
-        else:
-            pred = _safe_mean(means)
-
-        true_score = float(spec.get("true_score", 0.0))
+        pred = _safe_mean(means)
         items.append({
             "name": spec.get("name"),
             "agent_types": types,
-            "true": true_score,
             "pred": pred,
-            "error": pred - true_score,
         })
-        pairs.append((true_score, pred))
 
-    metrics = _compute_error_metrics(pairs)
-    return {"items": items, "metrics": metrics}
+    return {"items": items}
 
 

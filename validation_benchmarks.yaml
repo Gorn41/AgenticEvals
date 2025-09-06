@@ -2,10 +2,10 @@
 # Use with: --validate --validation-config validation_benchmarks.yaml
 
 validation_benchmarks:
-  - name: example_val_simple_goal
-    agent_types: ["simple_reflex", "goal_based"]
-    true_score: 0.70
-  - name: example_val_learning
-    agent_types: ["learning"]
-    true_score: 0.55
-    # weights: [1.0]  # optional; if provided, must match agent_types length
+  # Example benchmarks
+  # - name: example_val_simple_goal
+  #   agent_types: ["simple_reflex", "goal_based"]
+  # - name: example_val_learning
+  #   agent_types: ["learning"]
+  - name: ev_charging_policy
+    agent_types: ["model_based_reflex", "utility_based"]

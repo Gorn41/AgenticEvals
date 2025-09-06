@@ -9,10 +9,11 @@ import asyncio
 import time
 import argparse
 import csv
+import importlib
 import numpy as np
 import matplotlib.pyplot as plt
 from pathlib import Path
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any, Optional, Tuple
 from dotenv import load_dotenv
 
 # Add src to path for imports
@@ -23,7 +24,8 @@ from src.benchmark.loader import load_benchmark, get_available_benchmarks
 from src.benchmarks.local_web_app import stop_server as stop_flask_server
 from src.benchmarks.selenium_mcp_server import stop_mcp_server
 from src.models.loader import load_model_from_name
-from src.benchmark.base import TaskResult, BaseBenchmark
+from src.benchmark.base import TaskResult, BaseBenchmark, AgentType, BenchmarkConfig
+from src.benchmark.registry import get_validation_registry
 from src.benchmark.validation import within_type_loo, cross_type_loo, evaluate_external_validation
 
 async def test_benchmark(model, benchmark_name: str, verbose: bool = False, wait_seconds: float = 15.0) -> Dict[str, Any]:
@@ -172,6 +174,97 @@ async def test_benchmark(model, benchmark_name: str, verbose: bool = False, wait
     
     return summary
 
+async def test_benchmark_instance(model, benchmark: BaseBenchmark, benchmark_name: str, verbose: bool = False, wait_seconds: float = 15.0) -> Dict[str, Any]:
+    """Run a benchmark instance (not loaded via registry)."""
+    print(f"\n Running Benchmark: {benchmark_name}")
+    print("=" * 60)
+
+    tasks = benchmark.get_tasks()
+
+    print(f"Agent Type: {benchmark.agent_type.value}")
+    print(f"Total Tasks: {len(tasks)}")
+
+    results = []
+    total_start_time = time.time()
+
+    for i, task in enumerate(tasks):
+        print(f"\n Task {i+1}/{len(tasks)}: {task.name}")
+        try:
+            result = await benchmark.evaluate_task(task, model)
+            results.append(result)
+            status = "[PASS]" if result.success else "[FAIL]"
+            print(f"   Result: {status} (Score: {result.score:.3f})")
+            if result.metrics:
+                print(f"   Output Tokens: {result.metrics.get('output_tokens', 'N/A')}")
+            if verbose and result.model_response and result.model_response.text:
+                print(f"   Model Response: {result.model_response.text.strip()}")
+            if result.execution_time is not None:
+                print(f"   Execution Time: {result.execution_time:.2f}s")
+        except Exception as e:
+            print(f"   [ERROR] {e}")
+            result = TaskResult(
+                task_id=task.task_id,
+                task_name=task.name,
+                agent_type=benchmark.agent_type,
+                success=False,
+                score=0.0,
+                metrics={},
+                execution_time=0.0,
+                error_message=str(e)
+            )
+            results.append(result)
+
+        if i < len(tasks) - 1 and wait_seconds > 0:
+            print(f"   ...waiting {int(wait_seconds)}s before next task...")
+            await asyncio.sleep(wait_seconds)
+
+    total_time = time.time() - total_start_time
+
+    successful_tasks = [r for r in results if r.success]
+    scores = [r.score for r in results]
+    execution_times = [r.execution_time for r in results if r.execution_time is not None]
+    output_tokens = [r.metrics.get('output_tokens', 0) for r in results if r.metrics]
+
+    summary = {
+        'benchmark_name': benchmark_name,
+        'agent_type': benchmark.agent_type.value,
+        'total_tasks': len(tasks),
+        'successful_tasks': len(successful_tasks),
+        'success_rate': len(successful_tasks) / len(tasks) if tasks else 0.0,
+        'average_score': np.mean(scores) if scores else 0.0,
+        'std_dev_score': np.std(scores) if scores else 0.0,
+        'average_time': np.mean(execution_times) if execution_times else 0.0,
+        'std_dev_time': np.std(execution_times) if execution_times else 0.0,
+        'average_output_tokens': np.mean(output_tokens) if output_tokens else 0.0,
+        'std_dev_output_tokens': np.std(output_tokens) if output_tokens else 0.0,
+        'total_time': total_time,
+        'results': results
+    }
+
+    print(f"\n {benchmark_name.upper()} BENCHMARK SUMMARY:")
+    print(f"   Success Rate: {summary['success_rate']:.1%} ({summary['successful_tasks']}/{summary['total_tasks']})")
+    print(f"   Average Score: {summary['average_score']:.3f} (±{summary['std_dev_score']:.3f})")
+    print(f"   Average Time per Task: {summary['average_time']:.2f}s (±{summary['std_dev_time']:.2f}s)")
+    print(f"   Average Output Tokens per Task: {summary['average_output_tokens']:.1f} (±{summary['std_dev_output_tokens']:.1f})")
+    print(f"   Total Time (with delays): {summary['total_time']:.2f}s")
+
+    return summary
+
+def load_validation_benchmark(name: str, wait_seconds: float) -> Optional[BaseBenchmark]:
+    vreg = get_validation_registry()
+    cls = vreg.get_benchmark_class(name)
+    if not cls:
+        return None
+    # Use first mapped type for instantiation; mapping is available for validation usage
+    mapped = vreg.get_agent_types(name)
+    primary_type = mapped[0] if mapped else AgentType.MODEL_BASED_REFLEX
+    config = BenchmarkConfig(
+        benchmark_name=name,
+        agent_type=primary_type,
+        additional_params={'wait_seconds': wait_seconds},
+    )
+    return cls(config)
+
 def plot_results(all_summaries: List[Dict[str, Any]], agent_type_results: Dict[str, Dict[str, Any]], model_name: str):
     """
     Plot the results of the evaluation and save them to CSV files.
@@ -283,7 +376,7 @@ def plot_results(all_summaries: List[Dict[str, Any]], agent_type_results: Dict[s
     print(f"Agent type performance plot saved to {results_dir / f'agent_type_performance{file_suffix}.png'}")
     plt.show()
 
-async def main(model_name: str, benchmarks_to_run: Optional[List[str]] = None, plot: bool = False, verbose: bool = False, wait_seconds: float = 15.0, local: bool = False, vllm_config: Optional[str] = None, validate: bool = False, validation_config: Optional[str] = None):
+async def main(model_name: str, benchmarks_to_run: Optional[List[str]] = None, plot: bool = False, verbose: bool = False, wait_seconds: float = 15.0, local: bool = False, vllm_config: Optional[str] = None, validate: bool = False, validation_config: Optional[str] = None, validation_only: bool = False):
     """Run comprehensive evaluation of a model on all benchmarks."""
     
     # Load environment variables
@@ -332,19 +425,37 @@ async def main(model_name: str, benchmarks_to_run: Optional[List[str]] = None, p
             model = load_model_from_name(model_name, api_key=api_key, temperature=0.3, max_tokens=30000)
         print(f"Model loaded: {model.model_name}")
         
-        # Get all available benchmarks
-        if benchmarks_to_run:
-            all_benchmark_names = benchmarks_to_run
-        else:
-            available_benchmarks = get_available_benchmarks()
-            all_benchmark_names = [name for sublist in available_benchmarks.values() for name in sublist]
-        
         all_summaries = []
-        
-        for benchmark_name in all_benchmark_names:
-            summary = await test_benchmark(model, benchmark_name, verbose=verbose, wait_seconds=wait_seconds)
-            if 'error' not in summary:
-                all_summaries.append(summary)
+        if validation_only:
+            if validation_config:
+                print("\nRunning validation-only: executing validation benchmarks from config (no main benchmarks).")
+                import yaml
+                with open(validation_config, 'r') as f:
+                    cfg = yaml.safe_load(f) or {}
+                specs = cfg.get('validation_benchmarks', []) or []
+                for spec in specs:
+                    vb_name = spec.get('name')
+                    vb = load_validation_benchmark(vb_name, wait_seconds)
+                    if not vb:
+                        print(f"   [WARN] Unknown validation benchmark: {vb_name}")
+                        continue
+                    summary = await test_benchmark_instance(model, vb, vb_name, verbose=verbose, wait_seconds=wait_seconds)
+                    if 'error' not in summary:
+                        all_summaries.append(summary)
+            else:
+                print("\n[INFO] --validation-only provided without --validation-config; nothing to run.")
+        else:
+            # Get all available benchmarks
+            if benchmarks_to_run:
+                all_benchmark_names = benchmarks_to_run
+            else:
+                available_benchmarks = get_available_benchmarks()
+                all_benchmark_names = [name for sublist in available_benchmarks.values() for name in sublist]
+
+            for benchmark_name in all_benchmark_names:
+                summary = await test_benchmark(model, benchmark_name, verbose=verbose, wait_seconds=wait_seconds)
+                if 'error' not in summary:
+                    all_summaries.append(summary)
 
         # Overall summary
         print(f"\n\nOVERALL EVALUATION SUMMARY")
@@ -434,13 +545,52 @@ async def main(model_name: str, benchmarks_to_run: Optional[List[str]] = None, p
                     with open(validation_config, 'r') as f:
                         cfg = yaml.safe_load(f) or {}
                     specs = cfg.get('validation_benchmarks', []) or []
+                    # If no summaries (validation-only), try loading last results CSV to build aggregates
+                    if not agent_type_aggregated:
+                        try:
+                            import csv
+                            from pathlib import Path
+                            results_dir = Path(f"results/{model_name}")
+                            csv_path = results_dir / f"benchmark_results_{model_name}.csv"
+                            bench_scores: Dict[str, list] = {}
+                            if csv_path.exists():
+                                with open(csv_path, 'r') as fcsv:
+                                    reader = csv.DictReader(fcsv)
+                                    for row in reader:
+                                        b = row.get('Benchmark')
+                                        try:
+                                            s = float(row.get('Score', 0.0))
+                                        except Exception:
+                                            s = 0.0
+                                        if b:
+                                            bench_scores.setdefault(b, []).append(s)
+                            # Map benchmarks to agent types from registry
+                            available_benchmarks = get_available_benchmarks()
+                            bench_to_type: Dict[str, str] = {name: t.value for t, names in available_benchmarks.items() for name in names}
+                            tmp: Dict[str, list] = {}
+                            for b, arr in bench_scores.items():
+                                at = bench_to_type.get(b)
+                                if at:
+                                    tmp.setdefault(at, []).append(float(np.mean(arr)) if arr else 0.0)
+                            for at, arr in tmp.items():
+                                agent_type_aggregated[at] = {
+                                    'mean_score': float(np.mean(arr)) if arr else 0.0,
+                                    'std_score': float(np.std(arr)) if arr else 0.0,
+                                    'mean_time': 0.0,
+                                    'std_time': 0.0,
+                                    'mean_tokens': 0.0,
+                                    'std_tokens': 0.0,
+                                }
+                        except Exception:
+                            pass
+
                     external = evaluate_external_validation(specs, agent_type_aggregated)
-                    m = external['metrics']
-                    print("\n EXTERNAL VALIDATION (user-provided benchmarks):")
-                    print(f"   MAE={m['mae']:.3f}, RMSE={m['rmse']:.3f}, R2={m['r2']:.3f}")
+                    print("\n EXTERNAL VALIDATION (prediction proxies):")
+                    for item in external.get('items', []):
+                        print(f"   {item['name']}: pred={item['pred']:.3f} from agent_types={item['agent_types']}")
                 except Exception as ve:
                     print(f"[WARN] External validation config error: {ve}")
-
+        
         print("\n AGGREGATE METRICS BY AGENT TYPE:")
         print("=" * 70)
         for agent_type, data in agent_type_aggregated.items():
@@ -508,6 +658,11 @@ if __name__ == "__main__":
         help="Path to YAML file defining external validation benchmarks."
     )
     parser.add_argument(
+        "--validation-only",
+        action="store_true",
+        help="Skip running benchmarks; compute validation proxies only using existing results."
+    )
+    parser.add_argument(
         "--wait-seconds",
         type=float,
         default=15.0,
@@ -524,5 +679,6 @@ if __name__ == "__main__":
         local=args.local,
         vllm_config=args.vllm_config,
         validate=args.validate,
-        validation_config=args.validation_config
+        validation_config=args.validation_config,
+        validation_only=args.validation_only
     ))

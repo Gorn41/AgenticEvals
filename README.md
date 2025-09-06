@@ -83,7 +83,7 @@ python3 run.py --model gemma-3-27b-it --verbose
 You can run supported open-source models locally using vLLM instead of remote APIs. Install vLLM (added to requirements.txt) and run:
 
 ```bash
-# Example using Gemma-2 Instruct weights from Hugging Face
+# Example using Gemma-3 weights from Hugging Face
 python3 run.py --local --model google/gemma-3-4b-it --wait-seconds 0
 ```
 
@@ -120,18 +120,12 @@ Run with built-in cross-validation:
 python3 run.py --model gemma-3-4b-it --validate --wait-seconds 0
 ```
 
-Provide an external validation config to test predictive power on your own validation benchmarks:
+Provide a validation config listing external validation benchmarks to execute (names must be registered via the validation registry):
 
 ```yaml
 # validation_benchmarks.yaml
 validation_benchmarks:
-  - name: my_val_1
-    agent_types: ["simple_reflex", "goal_based"]
-    true_score: 0.72
-  - name: my_val_2
-    agent_types: ["learning"]
-    true_score: 0.55
-    weights: [1.0]  # optional; if omitted, equal weights across agent_types
+  - name: ev_charging_policy
 ```
 
 Run with config:
@@ -140,10 +134,28 @@ Run with config:
 python3 run.py --model gemma-3-4b-it --validate --validation-config validation_benchmarks.yaml
 ```
 
-This prints:
-- Within-agent-type leave-one-out: predicts each benchmark using the mean of the other benchmarks in the same agent type.
-- Cross-agent-type leave-one-out: predicts benchmarks of an agent type using the global mean of other agent types.
-- External validation: predicts given validation benchmarks as (weighted) averages of agent-type means and reports MAE/RMSE/R².
+This runs only the listed validation benchmarks (e.g., `ev_charging_policy`) when used with `--validation-only`. Predictions are computed from current agent-type aggregates.
+
+### Validation-Only Mode (run only validation benchmarks)
+
+Use `--validation-only` to execute only validation benchmarks listed in `--validation-config` and print prediction proxies.
+
+```bash
+python3 run.py --model gemma-3-4b-it \
+  --validate \
+  --validation-config validation_benchmarks.yaml \
+  --validation-only
+```
+
+
+### Running a Subset with Validation
+
+You can run only certain benchmarks alongside validation by passing their names before the flags:
+
+```bash
+python3 run.py --model gemma-3-4b-it fraud_detection inventory_management \
+  --validate --validation-config validation_benchmarks.yaml
+```
 
 ### Configure Wait Times Between Calls/Tasks
 
@@ -154,6 +166,18 @@ python3 run.py --model gemma-3-27b-it --wait-seconds 0
 ```
 
 This value is propagated to all benchmarks and used for any internal delays.
+
+### CLI Flags Quick Reference
+
+- `--model <name>`: model identifier (e.g., `gemma-3-4b-it` or HF id with `--local`).
+- `--local`: run locally via vLLM (open-source models only).
+- `--vllm-config <path>`: YAML with vLLM engine/sampling params.
+- `--wait-seconds <float>`: delay between tasks/turns (default 15.0; set 0 to disable).
+- `--plot`: generate plots and CSVs under `results/<model>/`.
+- `--verbose`: print additional per-task diagnostics.
+- `--validate`: enable validation/cross-validation reporting.
+- `--validation-config <path>`: YAML listing validation benchmarks and their mapped agent types.
+- `--validation-only`: skip running benchmarks and compute validation proxies from existing results.
 
 ## Project Structure
 
@@ -274,6 +298,10 @@ The key characteristics of learning agents/tasks include continuous learning fro
 - **ball_drop**: Physics-based prediction task. This task emphasizes agent flexibility and its ability to learn from a wide range of environmental dynamics as well as learning involving in-context memory.
 - **simulated_market**: A trading agent that learns to adapt its strategy in a simulated market using Retrieval-Augmented Generation (RAG). This task emphasizes agent flexibility and its ability to learn from a wide range of environmental dynamics as well as learning involving retrieval augmented generation (RAG).
 - **ecosystem**: Knowledge-graph-based ecosystem dynamics learning. This task emphasizes agent ability to learn using a knowledge graph.
+
+## Validation Tasks (not included in main agent-type aggregates)
+
+- **ev_charging_policy**: EV Charging Policy Optimization (Multi-Turn). A 10-turn benchmark where the model builds an internal model of consistent EV arrival patterns and selects discrete policy parameters to maximize a weighted utility. Associated agent types for validation mapping: `model_based_reflex`, `utility_based`.
 
 ## Development
 
