@@ -28,6 +28,12 @@ from src.benchmark.base import TaskResult, BaseBenchmark, AgentType, BenchmarkCo
 from src.benchmark.registry import get_validation_registry
 from src.benchmark.validation import within_type_loo, cross_type_loo, evaluate_external_validation
 
+def _fmt3(x):
+    return f"{x:.3f}" if isinstance(x, (int, float)) else "N/A"
+
+def _fmt2(x):
+    return f"{x:.2f}" if isinstance(x, (int, float)) else "N/A"
+
 async def test_benchmark(model, benchmark_name: str, verbose: bool = False, wait_seconds: float = 15.0) -> Dict[str, Any]:
     """Test a model on a given benchmark."""
     print(f"\n Running Benchmark: {benchmark_name}")
@@ -49,12 +55,6 @@ async def test_benchmark(model, benchmark_name: str, verbose: bool = False, wait
     print(f"Total Tasks: {len(tasks)}")
     
     results = []
-
-    def _fmt3(x):
-        return f"{x:.3f}" if isinstance(x, (int, float)) else "N/A"
-
-    def _fmt2(x):
-        return f"{x:.2f}" if isinstance(x, (int, float)) else "N/A"
     total_start_time = time.time()
     
     for i, task in enumerate(tasks):
