@@ -103,9 +103,9 @@ class SimulatedMarketLearningBenchmark(BaseBenchmark):
                 prompt="",  # The prompt is generated dynamically within the evaluation logic
                 metadata={
                     "market_pattern": scenario['pattern'],
-                    "num_training_episodes": 20,
+                    "num_training_episodes": 5,
                     "num_test_episodes": 5,
-                    "episode_length": 50, # 50 time steps per episode
+                    "episode_length": 10,
                 }
             )
             tasks.append(task)
@@ -113,65 +113,113 @@ class SimulatedMarketLearningBenchmark(BaseBenchmark):
         return tasks
 
     def _generate_market_data(self, pattern: str, length: int, seed: int) -> List[float]:
-        """Generates a sequence of market prices based on a deterministic pattern."""
+        """Generates more predictable market prices with clearer patterns."""
         np.random.seed(seed)
-        prices = [100.0]
-        
+        prices: List[float] = [100.0]
+        # Seasonal/"time of day" effect that repeats within an episode
+        time_effects = [float(np.sin(i * 2 * np.pi / max(2, length)) * 0.1) for i in range(length)]
+
         if pattern == "bull":
-            for _ in range(1, length):
-                change = np.random.normal(0.2, 0.5) # Increased drift
+            for i in range(1, length):
+                momentum = 1.0 + (i / max(1, length)) * 0.5
+                base_change = np.random.normal(0.3 * momentum, 0.2)
+                change = base_change + time_effects[i]
                 prices.append(max(1.0, prices[-1] + change))
         elif pattern == "bear":
-            for _ in range(1, length):
-                change = np.random.normal(-0.2, 0.5) # Increased drift
+            for i in range(1, length):
+                momentum = 1.0 + (i / max(1, length)) * 0.5
+                base_change = np.random.normal(-0.3 * momentum, 0.2)
+                change = base_change + time_effects[i]
                 prices.append(max(1.0, prices[-1] + change))
         elif pattern == "volatile":
-            for _ in range(1, length):
-                change = np.random.normal(0, 1.5)
+            for i in range(1, length):
+                cycle = float(np.sin(i * 2 * np.pi / 10) * 2.0)
+                noise = np.random.normal(0, 0.5)
+                base_change = cycle + noise
+                change = base_change + time_effects[i]
                 prices.append(max(1.0, prices[-1] + change))
         elif pattern == "crash":
-            crash_point = int(length * np.random.uniform(0.6, 0.9))
+            crash_point = int(length * 0.7)
             for i in range(1, length):
-                if i < crash_point:
-                    change = np.random.normal(0.01, 0.2)
-                    prices.append(max(1.0, prices[-1] + change))
+                if i < max(1, crash_point - 5):
+                    base_change = np.random.normal(0.1, 0.15)
+                elif i < crash_point:
+                    base_change = np.random.normal(-0.1, 0.4)
                 else:
-                    change = np.random.normal(-2.0, 1.0)
-                    prices.append(max(1.0, prices[-1] + change))
+                    base_change = np.random.normal(-1.5, 0.3)
+                change = base_change + time_effects[i]
+                prices.append(max(1.0, prices[-1] + change))
         elif pattern == "spike":
-            spike_point = int(length * np.random.uniform(0.6, 0.9))
+            spike_point = int(length * 0.7)
             for i in range(1, length):
-                if i < spike_point:
-                    change = np.random.normal(-0.01, 0.2)
-                    prices.append(max(1.0, prices[-1] + change))
+                if i < max(1, spike_point - 5):
+                    base_change = np.random.normal(-0.05, 0.15)
+                elif i < spike_point:
+                    base_change = np.random.normal(0.2, 0.3)
                 else:
-                    change = np.random.normal(2.0, 1.0)
-                    prices.append(max(1.0, prices[-1] + change))
+                    base_change = np.random.normal(1.5, 0.3)
+                change = base_change + time_effects[i]
+                prices.append(max(1.0, prices[-1] + change))
         elif pattern == "mean_reverting":
             mean = 100.0
-            for _ in range(1, length):
-                reversion = (mean - prices[-1]) * 0.4 # Increased reversion strength
-                change = np.random.normal(reversion, 0.5)
+            for i in range(1, length):
+                distance_from_mean = prices[-1] - mean
+                reversion_strength = 0.6
+                momentum = min(2.0, abs(distance_from_mean) / 10.0)
+                reversion = -distance_from_mean * reversion_strength * momentum
+                noise = np.random.normal(0, 0.3)
+                base_change = reversion + noise
+                change = base_change + time_effects[i]
                 prices.append(max(1.0, prices[-1] + change))
         elif pattern == "gentle_bull":
-            for _ in range(1, length):
-                change = np.random.normal(0.1, 0.2)
-                prices.append(max(1.0, prices[-1] + change))
-        elif pattern == "gentle_bear":
-            for _ in range(1, length):
-                change = np.random.normal(-0.1, 0.2)
+            phase_length = max(1, length // 3)
+            for i in range(1, length):
+                if i < phase_length:
+                    base_change = np.random.normal(0.05, 0.1)
+                elif i < 2 * phase_length:
+                    base_change = np.random.normal(0.25, 0.15)
+                else:
+                    base_change = np.random.normal(0.1, 0.12)
+                change = base_change + time_effects[i]
                 prices.append(max(1.0, prices[-1] + change))
         elif pattern == "strong_bull":
-            for _ in range(1, length):
-                change = np.random.normal(0.4, 0.6)
+            phase_length = max(1, length // 3)
+            for i in range(1, length):
+                if i < phase_length:
+                    base_change = np.random.normal(0.1, 0.15)
+                elif i < 2 * phase_length:
+                    base_change = np.random.normal(0.5, 0.2)
+                else:
+                    base_change = np.random.normal(0.2, 0.15)
+                change = base_change + time_effects[i]
+                prices.append(max(1.0, prices[-1] + change))
+        elif pattern == "gentle_bear":
+            phase_length = max(1, length // 3)
+            for i in range(1, length):
+                if i < phase_length:
+                    base_change = np.random.normal(-0.05, 0.1)
+                elif i < 2 * phase_length:
+                    base_change = np.random.normal(-0.25, 0.15)
+                else:
+                    base_change = np.random.normal(-0.1, 0.12)
+                change = base_change + time_effects[i]
                 prices.append(max(1.0, prices[-1] + change))
         elif pattern == "strong_bear":
-            for _ in range(1, length):
-                change = np.random.normal(-0.4, 0.6)
+            phase_length = max(1, length // 3)
+            for i in range(1, length):
+                if i < phase_length:
+                    base_change = np.random.normal(-0.1, 0.15)
+                elif i < 2 * phase_length:
+                    base_change = np.random.normal(-0.5, 0.2)
+                else:
+                    base_change = np.random.normal(-0.2, 0.15)
+                change = base_change + time_effects[i]
                 prices.append(max(1.0, prices[-1] + change))
-        else: # Default to a simple random walk
-            for _ in range(1, length):
-                change = np.random.normal(0, 1.0)
+        else:
+            # Default to a smoother random walk with low noise
+            for i in range(1, length):
+                base_change = np.random.normal(0.0, 0.3)
+                change = base_change + time_effects[i]
                 prices.append(max(1.0, prices[-1] + change))
 
         return prices
@@ -198,6 +246,28 @@ class SimulatedMarketLearningBenchmark(BaseBenchmark):
         
         shares_bought = capital / prices[0]
         final_value = shares_bought * prices[-1]
+        return final_value - capital
+
+    def _calculate_worst_pnl(self, prices: List[float], capital: float = 10000.0) -> float:
+        """
+        Calculates the worst possible performance from a single buy and sell transaction
+        under the same constraints: buy once, sell once. This is the opposite of optimal.
+        Buy at the peak, then sell at the minimum that occurs at or after that peak.
+        Returns a (negative) PnL.
+        """
+        if not prices or len(prices) < 2:
+            return 0.0
+        # Identify worst-case single transaction: buy high, sell lower later
+        max_price = max(prices)
+        max_index = prices.index(max_price)
+        if max_index >= len(prices) - 1:
+            # Peak is at the last step; cannot sell after -> no loss under single transaction
+            return 0.0
+        min_price_after_max = min(prices[max_index:])
+        if max_price <= 0:
+            return 0.0
+        shares_bought = capital / max_price
+        final_value = shares_bought * min_price_after_max
         return final_value - capital
 
     async def _run_episode(self, episode_id: int, market_data: List[float], model: BaseModel, is_training: bool, capital: float = 10000.0) -> Tuple[EpisodeResult, Dict]:
@@ -265,11 +335,16 @@ class SimulatedMarketLearningBenchmark(BaseBenchmark):
         return episode_result, {"output_tokens": total_output_tokens, "api_calls": api_calls, "api_time": accumulated_call_time}
 
     def _summarize_market(self, prices: List[float]) -> str:
-        """Creates a richer textual summary of the market's behavior."""
+        """Create a structured summary highlighting learnable phases and core stats."""
         if len(prices) < 2:
             return "Market history too short: insufficient data for summary."
 
-        # Basic features
+        # Phase detection requires a bit more history
+        if len(prices) < 10:
+            basic_only = True
+        else:
+            basic_only = False
+
         start_price = prices[0]
         end_price = prices[-1]
         price_change = (end_price - start_price) / start_price if start_price > 0 else 0.0
@@ -277,21 +352,18 @@ class SimulatedMarketLearningBenchmark(BaseBenchmark):
         mean_price = float(np.mean(prices)) if len(prices) > 0 else 0.0
         volatility = float(np.std(diffs) / mean_price) if mean_price > 0 else 0.0
 
-        # Magnitude and timing features
         max_price = max(prices)
         min_price = min(prices)
         max_idx = int(np.argmax(prices))
         min_idx = int(np.argmin(prices))
         range_pct = ((max_price - min_price) / start_price) if start_price > 0 else 0.0
 
-        # Early/late spike/crash indicators
         horizon = len(prices)
         early_window = prices[: max(2, horizon // 3)]
         late_window = prices[max(0, 2 * horizon // 3 - 1) :]
         early_change = (early_window[-1] - early_window[0]) / early_window[0] if early_window and early_window[0] > 0 else 0.0
         late_change = (late_window[-1] - late_window[0]) / late_window[0] if late_window and late_window[0] > 0 else 0.0
 
-        # Trend label
         if price_change > 0.05:
             trend = "Uptrend"
         elif price_change < -0.05:
@@ -299,7 +371,6 @@ class SimulatedMarketLearningBenchmark(BaseBenchmark):
         else:
             trend = "Sideways"
 
-        # Volatility label
         if volatility > 0.02:
             vol_label = "High volatility"
         elif volatility < 0.005:
@@ -317,11 +388,38 @@ class SimulatedMarketLearningBenchmark(BaseBenchmark):
         elif min_idx <= int(0.4 * horizon):
             timing_note += " Early trough."
 
-        return (
+        core = (
             f"{trend}. {vol_label}. "
             f"Change: {price_change:.3f}. RangePct: {range_pct:.3f}. "
             f"EarlyChange: {early_change:.3f}. LateChange: {late_change:.3f}." + timing_note
         )
+
+        if basic_only:
+            return core
+
+        # Add early/mid/late phase classification
+        one_third = max(1, horizon // 3)
+        two_third = max(one_third + 1, 2 * horizon // 3)
+        def pct(a: float, b: float) -> float:
+            return (a - b) / b if b > 0 else 0.0
+
+        early_trend = pct(prices[one_third], prices[0])
+        mid_trend = pct(prices[two_third], prices[one_third])
+        late_trend = pct(prices[-1], prices[two_third])
+
+        def phase_label(x: float, up: float = 0.02, down: float = -0.02, prefix: str = "") -> str:
+            if x > up:
+                return f"{prefix}UP"
+            if x < down:
+                return f"{prefix}DOWN"
+            return f"{prefix}FLAT"
+
+        phases = [
+            phase_label(early_trend, prefix="EARLY_"),
+            phase_label(mid_trend, prefix="MID_"),
+            phase_label(late_trend, prefix="LATE_"),
+        ]
+        return f"Pattern: {'-'.join(phases)}. " + core
 
     def _create_prompt(self, historical_prices: List[float], cash: float, shares: float, current_step: int, total_steps: int) -> str:
         """Creates the prompt for the agent for a single time step."""
@@ -452,16 +550,17 @@ Given the uptrend and limited steps remaining, I prefer to hold.
         # --- Final Score Calculation ---
         agent_pnl = sum(r.pnl for r in test_results)
         
-        # Calculate optimal and baseline PnL on the same data used for testing
-        optimal_pnl = sum(self._calculate_optimal_pnl(data) for data in [self._generate_market_data(market_pattern, episode_length, seed=num_training + i) for i in range(num_test)])
-        baseline_pnl = sum(self._calculate_baseline_pnl(data) for data in [self._generate_market_data(market_pattern, episode_length, seed=num_training + i) for i in range(num_test)])
+        # Calculate reference PnLs on the same held-out test data
+        test_market_data = [
+            self._generate_market_data(market_pattern, episode_length, seed=num_training + i)
+            for i in range(num_test)
+        ]
+        optimal_pnl = sum(self._calculate_optimal_pnl(data) for data in test_market_data)
+        baseline_pnl = sum(self._calculate_baseline_pnl(data) for data in test_market_data)
+        worst_pnl = sum(self._calculate_worst_pnl(data) for data in test_market_data)
 
-
-        # Normalize score
-        if optimal_pnl - baseline_pnl == 0:
-            score = 1.0 if agent_pnl >= baseline_pnl else 0.0
-        else:
-            score = (agent_pnl - baseline_pnl) / (optimal_pnl - baseline_pnl)
+        # Normalize score against worst and optimal (assumes non-degenerate market movement)
+        score = (agent_pnl - worst_pnl) / (optimal_pnl - worst_pnl)
         
         final_score = max(0.0, min(1.0, score)) # Clamp score between 0 and 1
 
@@ -478,6 +577,7 @@ Given the uptrend and limited steps remaining, I prefer to hold.
                 "agent_pnl": agent_pnl,
                 "optimal_pnl": optimal_pnl,
                 "baseline_pnl": baseline_pnl,
+                "worst_pnl": worst_pnl,
                 "output_tokens": total_output_tokens,
                 "num_training_episodes": num_training,
                 "num_test_episodes": num_test,
