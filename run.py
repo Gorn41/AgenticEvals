@@ -398,7 +398,7 @@ def plot_results(all_summaries: List[Dict[str, Any]], agent_type_results: Dict[s
     axs1[0].bar(benchmarks, avg_scores, yerr=std_scores, color='lightgreen', capsize=5)
     axs1[0].set_title('Average Score by Benchmark')
     axs1[0].set_ylabel('Average Score')
-    axs1[0].tick_params(axis='x', rotation=45)
+    axs1[0].tick_params(axis='x', rotation=90)
     
     # Average Time per Task
     avg_times = [s['average_time'] for s in all_summaries]
@@ -406,7 +406,7 @@ def plot_results(all_summaries: List[Dict[str, Any]], agent_type_results: Dict[s
     axs1[1].bar(benchmarks, avg_times, yerr=std_times, color='salmon', capsize=5)
     axs1[1].set_title('Average Time per Task (s)')
     axs1[1].set_ylabel('Seconds')
-    axs1[1].tick_params(axis='x', rotation=45)
+    axs1[1].tick_params(axis='x', rotation=90)
     
     # Average Output Tokens
     avg_tokens = [s['average_output_tokens'] for s in all_summaries]
@@ -415,9 +415,9 @@ def plot_results(all_summaries: List[Dict[str, Any]], agent_type_results: Dict[s
     axs1[2].set_title('Average Output Tokens per Task')
     axs1[2].set_ylabel('Tokens (log scale)')
     axs1[2].set_yscale('log')
-    axs1[2].tick_params(axis='x', rotation=45)
+    axs1[2].tick_params(axis='x', rotation=90)
     
-    plt.tight_layout(rect=[0, 0.03, 1, 0.95])
+    plt.tight_layout(rect=[0, 0.2, 1, 0.95])
     plt.savefig(results_dir / f'benchmark_performance{file_suffix}.png')
     print(f"Benchmark performance plot saved to {results_dir / f'benchmark_performance{file_suffix}.png'}")
     
