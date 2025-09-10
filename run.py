@@ -398,6 +398,11 @@ def plot_results(all_summaries: List[Dict[str, Any]], agent_type_results: Dict[s
     axs1[0].bar(benchmarks, avg_scores, yerr=std_scores, color='lightgreen', capsize=5)
     axs1[0].set_title('Average Score by Benchmark')
     axs1[0].set_ylabel('Average Score')
+    try:
+        score_upper_0 = max((s + e) for s, e in zip(avg_scores, std_scores)) if avg_scores and std_scores else (max(avg_scores) if avg_scores else 1.0)
+        axs1[0].set_ylim(0, max(1.1, score_upper_0 + 0.1))
+    except Exception:
+        axs1[0].set_ylim(0, 1.0)
     axs1[0].tick_params(axis='x', rotation=90)
     
     # Average Time per Task
@@ -405,7 +410,9 @@ def plot_results(all_summaries: List[Dict[str, Any]], agent_type_results: Dict[s
     std_times = [s['std_dev_time'] for s in all_summaries]
     axs1[1].bar(benchmarks, avg_times, yerr=std_times, color='salmon', capsize=5)
     axs1[1].set_title('Average Time per Task (s)')
-    axs1[1].set_ylabel('Seconds')
+    axs1[1].set_ylabel('Seconds (log scale)')
+    if any(v > 0 for v in avg_times):
+        axs1[1].set_yscale('log')
     axs1[1].tick_params(axis='x', rotation=90)
     
     # Average Output Tokens
@@ -433,6 +440,11 @@ def plot_results(all_summaries: List[Dict[str, Any]], agent_type_results: Dict[s
     axs2[0].bar(agent_types, avg_scores_by_type, yerr=std_scores_by_type, color='cornflowerblue', capsize=5)
     axs2[0].set_title('Weighted Average Score')
     axs2[0].set_ylabel('Score')
+    try:
+        score_upper_1 = max((s + e) for s, e in zip(avg_scores_by_type, std_scores_by_type)) if avg_scores_by_type and std_scores_by_type else (max(avg_scores_by_type) if avg_scores_by_type else 1.0)
+        axs2[0].set_ylim(0, max(1.1, score_upper_1 + 0.1))
+    except Exception:
+        axs2[0].set_ylim(0, 1.0)
     axs2[0].tick_params(axis='x', rotation=45)
     
     # Average Execution Time by Agent Type
@@ -440,7 +452,9 @@ def plot_results(all_summaries: List[Dict[str, Any]], agent_type_results: Dict[s
     std_times_by_type = [d['std_time'] for d in agent_type_results.values()]
     axs2[1].bar(agent_types, avg_times_by_type, yerr=std_times_by_type, color='mediumseagreen', capsize=5)
     axs2[1].set_title('Average Execution Time (s)')
-    axs2[1].set_ylabel('Seconds')
+    axs2[1].set_ylabel('Seconds (log scale)')
+    if any(v > 0 for v in avg_times_by_type):
+        axs2[1].set_yscale('log')
     axs2[1].tick_params(axis='x', rotation=45)
     
     # Average Output Tokens by Agent Type

@@ -408,17 +408,31 @@ Current State (before your restock this turn):
             # If direct parsing fails, try to find JSON within the text as a fallback
             pass
 
-        # Fallback to regex if direct parsing fails or format is wrong
+        # Fallback strategies if direct parsing fails or format is wrong
+        # 1) Prefer fenced JSON blocks (```json { ... } ```), then
+        # 2) Try all non-greedy brace-delimited candidates, preferring the last valid one
         try:
-            match = re.search(r'\{.*\}', response_text, re.DOTALL)
-            if match:
-                json_str = match.group(0)
-                decision = json.loads(json_str)
-                if isinstance(decision, dict):
-                     # Validate that keys are strings and values are integers
-                    if all(isinstance(k, str) and isinstance(v, int) for k, v in decision.items()):
-                        return {k: v for k, v in decision.items() if v > 0} # Filter out zero values
-        except (json.JSONDecodeError, TypeError):
+            candidates: List[str] = []
+
+            # Prefer fenced JSON block if present
+            fence_match = re.search(r"```(?:json)?\s*(\{.*?\})\s*```", response_text, re.DOTALL | re.IGNORECASE)
+            if fence_match:
+                candidates.append(fence_match.group(1))
+
+            # Collect all non-greedy brace-delimited candidates in the text
+            for m in re.finditer(r"\{.*?\}", response_text, re.DOTALL):
+                candidates.append(m.group(0))
+
+            # Try candidates from last to first (later snippets are usually the final answer)
+            for json_str in reversed(candidates):
+                try:
+                    decision = json.loads(json_str)
+                    if isinstance(decision, dict):
+                        if all(isinstance(k, str) and isinstance(v, int) for k, v in decision.items()):
+                            return {k: v for k, v in decision.items() if v > 0}
+                except json.JSONDecodeError:
+                    continue
+        except Exception:
             logger.warning(f"Could not parse JSON from response: {response_text}")
             return {}
         
