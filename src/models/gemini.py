@@ -9,6 +9,7 @@ from typing import List, Dict, Any, Optional
 try:
     from google import genai
     from google.genai.types import GenerateContentConfig
+    from google.genai import types
     GENAI_AVAILABLE = True
 except ImportError:
     GENAI_AVAILABLE = False
@@ -52,7 +53,10 @@ class GeminiModel(BaseModel):
         # Filter out None values
         filtered_config = {k: v for k, v in config_dict.items() if v is not None}
         
-        return GenerateContentConfig(**filtered_config)
+        return GenerateContentConfig(
+            **filtered_config,
+            automatic_function_calling=types.AutomaticFunctionCallingConfig(disable=True),
+        )
     
     async def generate(self, prompt: str, **kwargs) -> ModelResponse:
         """Generate a response asynchronously."""
