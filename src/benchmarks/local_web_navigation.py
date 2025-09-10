@@ -54,35 +54,35 @@ class Scenario:
 
 def _make_scenarios(base: str) -> List[Scenario]:
     return [
-        # Simple navigation with decoys: Home -> Section A -> Details 42 -> Confirm -> Success
+        # Simple navigation with decoys: Home -> Section A -> Details 37 -> Confirm -> Success
         Scenario(
             name="Simple path with decoys",
             start_url=f"{base}/",
-            goal_check={"path": "/success", "selector": "#success"},
+            goal_check={"path": "/success/section", "selector": "#success"},
             plan_actions=[
                 {"type": "click", "selector": "/section-a"},
                 {"type": "click", "selector": "/details/37"},
                 {"type": "click", "selector": "/confirm/37"},
-                {"type": "click", "selector": "/success"},
+                {"type": "click", "selector": "/success/section"},
             ],
         ),
         # Auth gate: Login then proceed to dashboard then success (type+type+submit+click)
         Scenario(
             name="Login gate to success",
             start_url=f"{base}/login",
-            goal_check={"path": "/success", "selector": "#success"},
+            goal_check={"path": "/success/login", "selector": "#success"},
             plan_actions=[
                 {"type": "type", "selector": "#username", "text": "alice"},
                 {"type": "type", "selector": "#password", "text": "wonderland"},
                 {"type": "submit", "selector": "form#login-form"},
-                {"type": "click", "selector": "/success"},
+                {"type": "click", "selector": "/success/login"},
             ],
         ),
         # Sum form: enter numbers summing to 10 and submit (type+type+submit)
         Scenario(
             name="Form sum equals 10",
             start_url=f"{base}/form-sum",
-            goal_check={"path": "/success", "selector": "#success"},
+            goal_check={"path": "/success/sum", "selector": "#success"},
             plan_actions=[
                 {"type": "type", "selector": "#a", "text": "3"},
                 {"type": "type", "selector": "#b", "text": "7"},
@@ -93,7 +93,7 @@ def _make_scenarios(base: str) -> List[Scenario]:
         Scenario(
             name="Token retrieval and submission",
             start_url=f"{base}/token",
-            goal_check={"path": "/success", "selector": "#success"},
+            goal_check={"path": "/success/token", "selector": "#success"},
             plan_actions=[
                 {"type": "click", "selector": "/form-token"},
                 {"type": "type", "selector": "#token-input", "text": "TOKEN-XYZ"},
@@ -104,45 +104,44 @@ def _make_scenarios(base: str) -> List[Scenario]:
         Scenario(
             name="Section page direct to success",
             start_url=f"{base}/section-a",
-            goal_check={"path": "/success", "selector": "#success"},
+            goal_check={"path": "/success/section", "selector": "#success"},
             plan_actions=[
                 {"type": "click", "selector": "/details/37"},
                 {"type": "click", "selector": "/confirm/37"},
-                {"type": "click", "selector": "/success"},
+                {"type": "click", "selector": "/success/section"},
             ],
         ),
         # Trap then recover: wrong details page, go to decoy, back home, then correct path
         Scenario(
             name="Wrong item trap then recover",
             start_url=f"{base}/details/13",
-            goal_check={"path": "/success", "selector": "#success"},
+            goal_check={"path": "/success/section", "selector": "#success"},
             plan_actions=[
-                {"type": "click", "selector": "/decoy"},
                 {"type": "click", "selector": "/"},
                 {"type": "click", "selector": "/section-a"},
                 {"type": "click", "selector": "/details/37"},
                 {"type": "click", "selector": "/confirm/37"},
-                {"type": "click", "selector": "/success"},
+                {"type": "click", "selector": "/success/section"},
             ],
         ),
         # Login path starting from home page
         Scenario(
             name="Login from home then success",
             start_url=f"{base}/",
-            goal_check={"path": "/success", "selector": "#success"},
+            goal_check={"path": "/success/login", "selector": "#success"},
             plan_actions=[
                 {"type": "click", "selector": "/login"},
                 {"type": "type", "selector": "#username", "text": "alice"},
                 {"type": "type", "selector": "#password", "text": "wonderland"},
                 {"type": "submit", "selector": "form#login-form"},
-                {"type": "click", "selector": "/success"},
+                {"type": "click", "selector": "/success/login"},
             ],
         ),
         # Token flow starting from home
         Scenario(
             name="Token flow from home",
             start_url=f"{base}/",
-            goal_check={"path": "/success", "selector": "#success"},
+            goal_check={"path": "/success/token", "selector": "#success"},
             plan_actions=[
                 {"type": "click", "selector": "/token"},
                 {"type": "click", "selector": "/form-token"},
@@ -154,42 +153,40 @@ def _make_scenarios(base: str) -> List[Scenario]:
         Scenario(
             name="Catalog checkout flow",
             start_url=f"{base}/",
-            goal_check={"path": "/success", "selector": "#success"},
+            goal_check={"path": "/success/catalog", "selector": "#success"},
             plan_actions=[
                 {"type": "click", "selector": "/catalog"},
                 {"type": "click", "selector": "/catalog/widgets"},
                 {"type": "click", "selector": "/catalog/widgets/37"},
                 {"type": "click", "selector": "/cart-add/37"},
-                {"type": "click", "selector": "/cart"},
                 {"type": "click", "selector": "/checkout"},
                 {"type": "click", "selector": "/address"},
                 {"type": "type", "selector": "#street", "text": "1 Infinite Loop"},
                 {"type": "submit", "selector": "form#address-form"},
-                {"type": "click", "selector": "/success"},
+                {"type": "click", "selector": "/success/catalog"},
             ],
         ),
         # OTP login to dashboard to success
         Scenario(
             name="OTP login flow",
             start_url=f"{base}/",
-            goal_check={"path": "/success", "selector": "#success"},
+            goal_check={"path": "/success/otp", "selector": "#success"},
             plan_actions=[
                 {"type": "click", "selector": "/otp-request"},
                 {"type": "click", "selector": "/otp-verify"},
                 {"type": "type", "selector": "#otp-input", "text": "9137"},
                 {"type": "submit", "selector": "form#otp-form"},
-                {"type": "click", "selector": "/success"},
+                {"type": "click", "selector": "/success/otp"},
             ],
         ),
         # Preferences consent then admin key then success
         Scenario(
             name="Admin key after consent",
             start_url=f"{base}/",
-            goal_check={"path": "/success", "selector": "#success"},
+            goal_check={"path": "/success/admin", "selector": "#success"},
             plan_actions=[
                 {"type": "click", "selector": "/preferences"},
                 {"type": "submit", "selector": "form#consent-form"},
-                {"type": "click", "selector": "/admin-key"},
                 {"type": "click", "selector": "/admin-form"},
                 {"type": "type", "selector": "#admin-key-input", "text": "KEY-ALPHA"},
                 {"type": "submit", "selector": "form#admin-form"},
@@ -202,6 +199,7 @@ def _make_scenarios(base: str) -> List[Scenario]:
 class _AbstractState:
     path: str
     logged_in: bool = False
+    login_via_otp: bool = False
     cart_has_37: bool = False
     address_ok: bool = False
     consent: bool = False
@@ -265,9 +263,9 @@ def _bfs_successors(state: _AbstractState) -> List[Tuple[Dict[str, Any], _Abstra
         item_id = p.split("/")[-1]
         clickable = [f"/confirm/{item_id}" if item_id == "37" else "/offers"]
     elif p.startswith("/confirm/"):
-        clickable = ["/success"]
+        clickable = ["/success/section"]
     elif p == "/dashboard":
-        clickable = ["/success"]
+        clickable = ["/success/otp"] if state.login_via_otp else ["/success/login"]
     elif p == "/token":
         clickable = ["/form-token"]
     elif p == "/catalog":
@@ -285,7 +283,7 @@ def _bfs_successors(state: _AbstractState) -> List[Tuple[Dict[str, Any], _Abstra
     elif p == "/checkout":
         clickable = ["/address"]
     elif p == "/review":
-        clickable = ["/success"]
+        clickable = ["/success/catalog"]
     elif p == "/otp-request":
         clickable = ["/otp-verify"]
     elif p == "/preferences":
@@ -327,34 +325,7 @@ def _bfs_successors(state: _AbstractState) -> List[Tuple[Dict[str, Any], _Abstra
             )
             actions.append(({"type": "click", "selector": href}, new_state))
 
-    # Navigate transitions (mirror click semantics for each href)
-    for href in clickable:
-        if href.startswith("/cart-add/"):
-            item_id = href.split("/")[-1]
-            new_state = clear_inputs(state)
-            new_state = _AbstractState(
-                path="/cart",
-                logged_in=new_state.logged_in,
-                cart_has_37=(new_state.cart_has_37 or item_id == "37"),
-                address_ok=new_state.address_ok,
-                consent=new_state.consent,
-                otp_ready=new_state.otp_ready,
-            )
-            actions.append(({"type": "navigate", "url": href}, new_state))
-        else:
-            target = href
-            if href == "/admin-key" and not state.consent:
-                target = "/preferences"
-            new_state = clear_inputs(state)
-            new_state = _AbstractState(
-                path=target,
-                logged_in=new_state.logged_in,
-                cart_has_37=new_state.cart_has_37,
-                address_ok=new_state.address_ok,
-                consent=new_state.consent,
-                otp_ready=new_state.otp_ready,
-            )
-            actions.append(({"type": "navigate", "url": href}, new_state))
+    # Note: navigation actions are disabled for exploitation; successors only expose click/type/submit semantics
 
     # Forms / type / submit
     if p == "/login":
@@ -365,7 +336,7 @@ def _bfs_successors(state: _AbstractState) -> List[Tuple[Dict[str, Any], _Abstra
             ns = _AbstractState(path=p, logged_in=state.logged_in, cart_has_37=state.cart_has_37, address_ok=state.address_ok, consent=state.consent, otp_ready=state.otp_ready, typed_username=state.typed_username, typed_password=True)
             actions.append(({"type": "type", "selector": "#password", "text": "wonderland"}, ns))
         if state.typed_username and state.typed_password:
-            ns = _AbstractState(path="/dashboard", logged_in=True, cart_has_37=state.cart_has_37, address_ok=state.address_ok, consent=state.consent, otp_ready=state.otp_ready)
+            ns = _AbstractState(path="/dashboard", logged_in=True, login_via_otp=False, cart_has_37=state.cart_has_37, address_ok=state.address_ok, consent=state.consent, otp_ready=state.otp_ready)
             actions.append(({"type": "submit", "selector": "form#login-form"}, ns))
 
     if p == "/form-sum":
@@ -376,7 +347,7 @@ def _bfs_successors(state: _AbstractState) -> List[Tuple[Dict[str, Any], _Abstra
             ns = _AbstractState(path=p, logged_in=state.logged_in, cart_has_37=state.cart_has_37, address_ok=state.address_ok, consent=state.consent, otp_ready=state.otp_ready, typed_a=state.typed_a, typed_b=True)
             actions.append(({"type": "type", "selector": "#b", "text": "7"}, ns))
         if state.typed_a and state.typed_b:
-            ns = _AbstractState(path="/success", logged_in=state.logged_in, cart_has_37=state.cart_has_37, address_ok=state.address_ok, consent=state.consent, otp_ready=state.otp_ready)
+            ns = _AbstractState(path="/success/sum", logged_in=state.logged_in, login_via_otp=state.login_via_otp, cart_has_37=state.cart_has_37, address_ok=state.address_ok, consent=state.consent, otp_ready=state.otp_ready)
             actions.append(({"type": "submit", "selector": "form#sum-form"}, ns))
 
     if p == "/form-token":
@@ -384,7 +355,7 @@ def _bfs_successors(state: _AbstractState) -> List[Tuple[Dict[str, Any], _Abstra
             ns = _AbstractState(path=p, logged_in=state.logged_in, cart_has_37=state.cart_has_37, address_ok=state.address_ok, consent=state.consent, otp_ready=state.otp_ready, typed_token=True)
             actions.append(({"type": "type", "selector": "#token-input", "text": "TOKEN-XYZ"}, ns))
         else:
-            ns = _AbstractState(path="/success", logged_in=state.logged_in, cart_has_37=state.cart_has_37, address_ok=state.address_ok, consent=state.consent, otp_ready=state.otp_ready)
+            ns = _AbstractState(path="/success/token", logged_in=state.logged_in, login_via_otp=state.login_via_otp, cart_has_37=state.cart_has_37, address_ok=state.address_ok, consent=state.consent, otp_ready=state.otp_ready)
             actions.append(({"type": "submit", "selector": "form#token-form"}, ns))
 
     if p == "/address":
@@ -392,7 +363,7 @@ def _bfs_successors(state: _AbstractState) -> List[Tuple[Dict[str, Any], _Abstra
             ns = _AbstractState(path=p, logged_in=state.logged_in, cart_has_37=state.cart_has_37, address_ok=state.address_ok, consent=state.consent, otp_ready=state.otp_ready, typed_street=True)
             actions.append(({"type": "type", "selector": "#street", "text": "1 Infinite Loop"}, ns))
         else:
-            ns = _AbstractState(path="/review", logged_in=state.logged_in, cart_has_37=state.cart_has_37, address_ok=True, consent=state.consent, otp_ready=state.otp_ready)
+            ns = _AbstractState(path="/review", logged_in=state.logged_in, login_via_otp=state.login_via_otp, cart_has_37=state.cart_has_37, address_ok=True, consent=state.consent, otp_ready=state.otp_ready)
             actions.append(({"type": "submit", "selector": "form#address-form"}, ns))
 
     if p == "/otp-request":
@@ -404,7 +375,7 @@ def _bfs_successors(state: _AbstractState) -> List[Tuple[Dict[str, Any], _Abstra
             ns = _AbstractState(path=p, logged_in=state.logged_in, cart_has_37=state.cart_has_37, address_ok=state.address_ok, consent=state.consent, otp_ready=state.otp_ready, typed_otp=True)
             actions.append(({"type": "type", "selector": "#otp-input", "text": "9137"}, ns))
         elif state.otp_ready and state.typed_otp:
-            ns = _AbstractState(path="/dashboard", logged_in=True, cart_has_37=state.cart_has_37, address_ok=state.address_ok, consent=state.consent, otp_ready=state.otp_ready)
+            ns = _AbstractState(path="/dashboard", logged_in=True, login_via_otp=True, cart_has_37=state.cart_has_37, address_ok=state.address_ok, consent=state.consent, otp_ready=state.otp_ready)
             actions.append(({"type": "submit", "selector": "form#otp-form"}, ns))
 
     if p == "/preferences":
@@ -417,16 +388,15 @@ def _bfs_successors(state: _AbstractState) -> List[Tuple[Dict[str, Any], _Abstra
             ns = _AbstractState(path=p, logged_in=state.logged_in, cart_has_37=state.cart_has_37, address_ok=state.address_ok, consent=state.consent, otp_ready=state.otp_ready, typed_admin_key=True)
             actions.append(({"type": "type", "selector": "#admin-key-input", "text": "KEY-ALPHA"}, ns))
         else:
-            ns = _AbstractState(path="/success", logged_in=state.logged_in, cart_has_37=state.cart_has_37, address_ok=state.address_ok, consent=state.consent, otp_ready=state.otp_ready)
+            ns = _AbstractState(path="/success/admin", logged_in=state.logged_in, login_via_otp=state.login_via_otp, cart_has_37=state.cart_has_37, address_ok=state.address_ok, consent=state.consent, otp_ready=state.otp_ready)
             actions.append(({"type": "submit", "selector": "form#admin-form"}, ns))
 
     return actions
 
 
-def _compute_k_shortest_plans_via_bfs(start_url: str, k: int = 3) -> List[List[Dict[str, Any]]]:
+def _compute_k_shortest_plans_via_bfs(start_url: str, goal_path: str = "/success", k: int = 3) -> List[List[Dict[str, Any]]]:
     start_path = _normalize_path(start_url)
     start = _AbstractState(path=start_path)
-    goal_path = "/success"
 
     # Standard BFS to compute distances and parent lists for shortest paths
     queue: Deque[_AbstractState] = deque([start])
@@ -536,7 +506,6 @@ def _build_exploration_prompt(observation: Dict[str, Any], goal_summary: str) ->
         + "[ACTION: {\"type\":\"click\",\"selector\":\"/path or CSS\"}]\n"
         + "[ACTION: {\"type\":\"type\",\"selector\":\"#input or name\",\"text\":\"...\"}]\n"
         + "[ACTION: {\"type\":\"submit\",\"selector\":\"form selector\"}]\n"
-        + "[ACTION: {\"type\":\"navigate\",\"url\":\"/path\"}]\n"
         + "Respond with only one ACTION block as the last line using the exact JSON structure above."
     )
 
@@ -546,9 +515,9 @@ def _build_exploitation_prompt(observation: Dict[str, Any], goal_summary: str) -
         "Exploitation Phase (Scored).\n"
         "STATE RESET: All cookies and server-side session have been cleared. You are logged out, forms are empty, and any carts/preferences are empty.\n"
         "Start from the clean state in OBSERVATION (current_url is the start URL).\n"
-        "Use exploration_memory (visited_urls and site_guide_dom if present) only as planning knowledge; do NOT assume interactive state persisted.\n"
+        "Use exploration_memory (visited_urls, seen_pages visible_text, and site_guide_dom if present) only as planning knowledge; do NOT assume interactive state persisted.\n"
         "Write a brief Reasoning section first. Then output a complete PLAN as a JSON array of primitives to reach the GOAL from this clean starting state.\n"
-        "Strict JSON per step: {\"type\":\"click|type|submit|navigate\", ...}.\n"
+        "Strict JSON per step: {\"type\":\"click|type|submit\", ...}.\n"
     )
     return (
         instructions
@@ -598,8 +567,20 @@ class _MCPBrowser:
 
     def navigate(self, path_or_url: str) -> Tuple[str, str]:
         url = self._abs(path_or_url)
-        out = self._call("browser.navigate", {"url": url})
-        return out.get("url", url), out.get("title", "")
+        last_err: Optional[Exception] = None
+        for _ in range(10):
+            try:
+                out = self._call("browser.navigate", {"url": url})
+                return out.get("url", url), out.get("title", "")
+            except Exception as e:
+                last_err = e
+                msg = str(e)
+                if "ERR_CONNECTION_RESET" in msg or "net::ERR" in msg or "connection reset" in msg.lower():
+                    time.sleep(0.1)
+                    continue
+                raise
+        # Exhausted retries
+        raise last_err if last_err else RuntimeError("browser.navigate failed after retries")
 
     def click(self, selector: str) -> Tuple[str, str]:
         out = self._call("browser.click", {"selector": selector, "requireVisible": True, "scrollIntoView": True})
@@ -784,8 +765,8 @@ def _validate_action(json_str: str) -> Optional[Dict[str, Any]]:
             if not isinstance(txt, str):
                 return None
     elif a_type == "navigate":
-        if not action.get("url"):
-            return None
+        # Disallow navigate in current benchmark configuration
+        return None
     else:
         return None
     return action
@@ -894,8 +875,8 @@ def _parse_plan(text: str) -> Optional[List[Dict[str, Any]]]:
             if a_type == "type" and ("text" not in action or not isinstance(action.get("text"), str)):
                 return None
         elif a_type == "navigate":
-            if not action.get("url"):
-                return None
+            # Disallow navigate in plans
+            return None
         else:
             return None
 
@@ -913,19 +894,17 @@ class LocalWebNavigationBenchmark(BaseBenchmark):
 
     def __init__(self, config: BenchmarkConfig):
         super().__init__(config)
+        # Start local Flask app and Selenium MCP server per configured URL
         ensure_server_running(host="127.0.0.1", port=5005)
-        # Ensure local MCP server is running if pointing to localhost
-        try:
-            mcp_env = os.getenv("SELENIUM_MCP_URL", "ws://127.0.0.1:7007")
-            parsed = urlparse(mcp_env)
-            host = parsed.hostname or "127.0.0.1"
-            port = parsed.port or 7007
-            if parsed.scheme in ("ws", "wss") and host in ("127.0.0.1", "localhost"):
-                ensure_mcp_server_running(host=host, port=port)
-        except Exception:
-            # Non-fatal; later connect will show an explicit error if unavailable
-            pass
         self.base_url = "http://127.0.0.1:5005"
+
+        mcp_env = os.getenv("SELENIUM_MCP_URL", "ws://127.0.0.1:7007")
+        parsed = urlparse(mcp_env)
+        host = parsed.hostname or "127.0.0.1"
+        port = parsed.port or 7007
+        if parsed.scheme in ("ws", "wss") and host in ("127.0.0.1", "localhost", "0.0.0.0"):
+            ensure_mcp_server_running(host=host, port=port)
+        time.sleep(0.2)  # brief wait for MCP to come up
 
     def get_tasks(self) -> List[Task]:
         tasks: List[Task] = []
@@ -939,16 +918,31 @@ class LocalWebNavigationBenchmark(BaseBenchmark):
                 f"Goal: {goal_summary}\n\n"
             )
             # Compute up to 3 alternative shortest plans via abstract BFS to guard against drift
-            bfs_plans = _compute_k_shortest_plans_via_bfs(sc.start_url, k=3)
-            bfs_plan = bfs_plans[0] if bfs_plans else []
-            optimal_steps = len(bfs_plan) if bfs_plan else sc.optimal_steps
+            bfs_plans = _compute_k_shortest_plans_via_bfs(sc.start_url, goal_path=sc.goal_check["path"], k=3)
+            # Prefer the handwritten scenario plan first; fallback to BFS candidates
+            preferred_plans: List[List[Dict[str, Any]]] = []
+            if sc.plan_actions:
+                preferred_plans.append(sc.plan_actions)
+            preferred_plans.extend(bfs_plans or [])
+            # Deduplicate plans
+            dedup: List[List[Dict[str, Any]]] = []
+            seen_keys: Set[str] = set()
+            for pl in preferred_plans:
+                try:
+                    key = _json.dumps(pl, sort_keys=True)
+                except Exception:
+                    key = str(pl)
+                if key not in seen_keys:
+                    seen_keys.add(key)
+                    dedup.append(pl)
+            optimal_steps = sc.optimal_steps
             tasks.append(
                 Task(
                     task_id=f"local_web_nav_{idx}",
                     name=sc.name,
                     description=sc.name,
                     prompt=prompt,
-                    evaluation_criteria={"optimal_steps": optimal_steps, "bfs_plans": bfs_plans},
+                    evaluation_criteria={"optimal_steps": optimal_steps, "bfs_plans": dedup},
                     metadata={
                         "start_url": sc.start_url,
                         "goal_check": sc.goal_check,
@@ -973,12 +967,15 @@ class LocalWebNavigationBenchmark(BaseBenchmark):
                     ok = True
                     try:
                         pf_browser.clear_cookies()
+                        # Also clear local/session storage to remove residual state
+                        try:
+                            pf_browser._call("browser.clearStorage", {})
+                        except Exception:
+                            pass
                         pf_browser.navigate(task.metadata["start_url"])
                         for act in candidate:
                             at = act.get("type")
-                            if at == "navigate" and act.get("url"):
-                                pf_browser.navigate(act["url"])
-                            elif at == "click" and act.get("selector"):
+                            if at == "click" and act.get("selector"):
                                 pf_browser.click(act["selector"])
                             elif at == "type" and act.get("selector") and "text" in act:
                                 pf_browser.type(act["selector"], act["text"])
@@ -1000,9 +997,14 @@ class LocalWebNavigationBenchmark(BaseBenchmark):
         except Exception:
             pass
 
-        # Enforce MCP-only
+        # Enforce MCP-only; new driver per task to avoid cross-task state bleed
         mcp_url = os.getenv("SELENIUM_MCP_URL", "ws://127.0.0.1:7007")
         browser: Any = _MCPBrowser(self.base_url, mcp_url)
+        # Hard reset driver between tasks
+        try:
+            browser._call("browser.hardReset", {})
+        except Exception:
+            pass
         # Navigate to start
         url, title = browser.navigate(task.metadata["start_url"])  # initial observation
         dom0 = browser.get_dom_summary(viewport_only=True)
@@ -1036,6 +1038,31 @@ class LocalWebNavigationBenchmark(BaseBenchmark):
                     return False
             except Exception:
                 return False
+
+        # Helper: wait for navigation to complete if URL changes after an action
+        def _wait_until_url_changes(prev_url: str, timeout: float = 2.0) -> Tuple[str, str]:
+            t0 = time.time()
+            current_url = prev_url
+            current_title = ""
+            while time.time() - t0 < timeout:
+                try:
+                    loc = browser._call("browser.getLocation", {})
+                    u = loc.get("url", "")
+                    t = loc.get("title", "")
+                    if u and u != prev_url:
+                        # brief settle
+                        try:
+                            time.sleep(0.05)
+                            loc2 = browser._call("browser.getLocation", {})
+                            return loc2.get("url", u), loc2.get("title", t)
+                        except Exception:
+                            return u, t
+                    current_url, current_title = u or current_url, t or current_title
+                except Exception:
+                    pass
+                time.sleep(0.05)
+            # Timed out; return last observed
+            return current_url, current_title
 
         try:
             # Check if already at goal
@@ -1097,22 +1124,12 @@ class LocalWebNavigationBenchmark(BaseBenchmark):
 
                 atype = action.get("type")
                 try:
-                    if atype == "navigate" and action.get("url"):
-                        url, title = browser.navigate(action["url"])
-                        if url:
-                            visited_urls.append(url)
-                            if url.endswith('/site-guide'):
-                                try:
-                                    dom_full = browser.get_dom_summary(viewport_only=False, max_links=200, max_inputs=200, max_forms=200)
-                                    guide_snapshot = {
-                                        "url": url,
-                                        "title": title,
-                                        "elements": dom_full.get("elements", {}),
-                                    }
-                                except Exception:
-                                    pass
-                    elif atype == "click" and action.get("selector"):
+                    if atype == "click" and action.get("selector"):
+                        prev_url = url
                         url, title = browser.click(action["selector"])
+                        # Wait for potential navigation
+                        u2, t2 = _wait_until_url_changes(prev_url)
+                        url, title = (u2 or url), (t2 or title)
                         if url:
                             visited_urls.append(url)
                             if url.endswith('/site-guide'):
@@ -1122,13 +1139,18 @@ class LocalWebNavigationBenchmark(BaseBenchmark):
                                         "url": url,
                                         "title": title,
                                         "elements": dom_full.get("elements", {}),
+                                        "visible_text": (dom_full.get("visible_text", "") or "")[:2000],
                                     }
                                 except Exception:
                                     pass
                     elif atype == "type" and action.get("selector") and "text" in action:
                         browser.type(action["selector"], action["text"])
                     elif atype == "submit" and action.get("selector"):
+                        prev_url = url
                         url, title = browser.submit(action["selector"])
+                        # Wait for post-submit navigation
+                        u2, t2 = _wait_until_url_changes(prev_url)
+                        url, title = (u2 or url), (t2 or title)
                         last_fields = {}
                         if url:
                             visited_urls.append(url)
@@ -1139,9 +1161,13 @@ class LocalWebNavigationBenchmark(BaseBenchmark):
                                         "url": url,
                                         "title": title,
                                         "elements": dom_full.get("elements", {}),
+                                        "visible_text": (dom_full.get("visible_text", "") or "")[:2000],
                                     }
                                 except Exception:
                                     pass
+                    elif atype == "navigate":
+                        # Disallow navigate in exploration
+                        invalid_actions += 1
                     else:
                         invalid_actions += 1
                 except Exception:
@@ -1171,7 +1197,11 @@ class LocalWebNavigationBenchmark(BaseBenchmark):
                         seen_selectors.extend(s for s in sels if isinstance(s, str))
                 except Exception:
                     pass
-                seen_pages.append({"url": url, "title": title})
+                try:
+                    vt = domk.get("visible_text", "")
+                except Exception:
+                    vt = ""
+                seen_pages.append({"url": url, "title": title, "visible_text": vt})
 
                 # Note: Exploration is unscored. Even if goal is encountered here,
                 # we do NOT return early; continue until budget is exhausted and proceed to exploitation.
@@ -1180,9 +1210,13 @@ class LocalWebNavigationBenchmark(BaseBenchmark):
                 if wait_seconds > 0:
                     await asyncio.sleep(wait_seconds)
 
-            # Phase 2: Exploitation — reset cookies/state to ensure constant optimal path
-            browser.clear_cookies()
+            # Phase 2: Exploitation — hard reset browser and server for clean slate
+            try:
+                browser.quit()
+            except Exception:
+                pass
             reset_server("127.0.0.1", 5005)
+            browser = _MCPBrowser(self.base_url, mcp_url)
             url, title = browser.navigate(task.metadata["start_url"])
             dom = browser.get_dom_summary(viewport_only=True)
             observation_exploit = {
@@ -1193,9 +1227,10 @@ class LocalWebNavigationBenchmark(BaseBenchmark):
                 "exploration_memory": {
                       "visited_urls": visited_urls,
                       "site_guide_dom": guide_snapshot,
+                      "seen_pages": [{"url": p.get("url"), "title": p.get("title"), "visible_text": p.get("visible_text")[:500] if isinstance(p.get("visible_text"), str) else ""} for p in seen_pages[-20:]],
                 },
             }
-            goal_summary = f"Navigate until path is '{goal['path']}' and element '{goal['selector']}' exists. Start from a fresh session at {task.metadata['start_url']}."
+            goal_summary = f"Navigate until path is '{goal['path']}' and element '{goal['selector']}' exists (flow-specific). Start from a fresh session at {task.metadata['start_url']}."
             prompt = _build_exploitation_prompt(observation_exploit, goal_summary)
 
             call_started_at = time.time()
@@ -1212,14 +1247,22 @@ class LocalWebNavigationBenchmark(BaseBenchmark):
             for act in plan_list:
                 try:
                     atype = act.get("type")
-                    if atype == "navigate" and act.get("url"):
-                        url, title = browser.navigate(act["url"])
-                    elif atype == "click" and act.get("selector"):
+                    if atype == "click" and act.get("selector"):
+                        prev_url = url
                         url, title = browser.click(act["selector"])
+                        u2, t2 = _wait_until_url_changes(prev_url)
+                        url, title = (u2 or url), (t2 or title)
                     elif atype == "type" and act.get("selector") and "text" in act:
                         browser.type(act["selector"], act["text"])
                     elif atype == "submit" and act.get("selector"):
+                        prev_url = url
                         url, title = browser.submit(act["selector"])
+                        u2, t2 = _wait_until_url_changes(prev_url)
+                        url, title = (u2 or url), (t2 or title)
+                    elif atype == "navigate":
+                        invalid_actions += 1
+                        plan_failed = True
+                        break
                     else:
                         invalid_actions += 1
                         plan_failed = True

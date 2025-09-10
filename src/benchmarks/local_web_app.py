@@ -58,11 +58,11 @@ def _get_app() -> Flask:
       <h1 id="page-title">{{ title }}</h1>
       <div id="content">{{ content|safe }}</div>
       <div id="nav">
-        <a id="home-link" href="{{ url_for('home') }}">Home</a>
+        <a id="home-link" href="{{ url_for('home') }}">/</a>
       </div>
       <div id="spacer"></div>
       <div id="footer">
-        <a id="site-guide-link" href="{{ url_for('site_guide') }}">Site Guide</a>
+        <a id="site-guide-link" href="{{ url_for('site_guide') }}">/site-guide</a>
       </div>
     </body>
     </html>
@@ -73,14 +73,14 @@ def _get_app() -> Flask:
         content_html = (
             f"""
               <p>Welcome to the Local Navigation Testbed.</p>
-              <a id=\"products-link\" href=\"{url_for('section_a')}\">Products</a>
-              <a id=\"offers-link\" href=\"{url_for('offers')}\">Offers</a>
-              <a id=\"login-link\" href=\"{url_for('login')}\">Login</a>
-              <a id=\"form-sum-link\" href=\"{url_for('form_sum')}\">Sum Form</a>
-              <a id=\"token-link\" href=\"{url_for('token_page')}\">Get Token</a>
-              <a id=\"catalog-link\" href=\"{url_for('catalog')}\">Catalog</a>
-              <a id=\"otp-link\" href=\"{url_for('otp_request')}\">OTP Login</a>
-              <a id=\"prefs-link\" href=\"{url_for('preferences')}\">Preferences</a>
+              <a id=\"products-link\" href=\"{url_for('section_a')}\">/section-a</a>
+              <a id=\"offers-link\" href=\"{url_for('offers')}\">/offers</a>
+              <a id=\"login-link\" href=\"{url_for('login')}\">/login</a>
+              <a id=\"form-sum-link\" href=\"{url_for('form_sum')}\">/form-sum</a>
+              <a id=\"token-link\" href=\"{url_for('token_page')}\">/token</a>
+              <a id=\"catalog-link\" href=\"{url_for('catalog')}\">/catalog</a>
+              <a id=\"otp-link\" href=\"{url_for('otp_request')}\">/otp-request</a>
+              <a id=\"prefs-link\" href=\"{url_for('preferences')}\">/preferences</a>
             """
         )
         return render_template_string(base_template, title="Home", content=content_html)
@@ -90,7 +90,7 @@ def _get_app() -> Flask:
         content_html = (
             f"""
               <p>Decoy page. Nothing to do here.</p>
-              <a id=\"back-home\" href=\"{url_for('home')}\">Back</a>
+              <a id=\"back-home\" href=\"{url_for('home')}\">/</a>
             """
         )
         return render_template_string(base_template, title="Offers", content=content_html)
@@ -100,8 +100,8 @@ def _get_app() -> Flask:
         content_html = (
             f"""
               <p>Section A</p>
-              <a id=\"item-13\" href=\"{url_for('details', item_id=13)}\">Item 13</a>
-              <a id=\"item-37\" href=\"{url_for('details', item_id=37)}\">Item 37</a>
+              <a id=\"item-13\" href=\"{url_for('details', item_id=13)}\">/details/13</a>
+              <a id=\"item-37\" href=\"{url_for('details', item_id=37)}\">/details/37</a>
             """
         )
         return render_template_string(base_template, title="Section A", content=content_html)
@@ -113,7 +113,7 @@ def _get_app() -> Flask:
         content_html = (
             f"""
               <p>Details for Item {item_id}</p>
-              <a id=\"confirm\" href=\"{proceed_href}\">Proceed</a>
+              <a id=\"confirm\" href=\"{proceed_href}\">{proceed_href}</a>
             """
         )
         return render_template_string(base_template, title=f"Details {item_id}", content=content_html)
@@ -124,7 +124,7 @@ def _get_app() -> Flask:
         content_html = (
             f"""
               <p>Confirm Item {item_id}</p>
-              <a id=\"to-success\" href=\"{url_for('success')}\">Confirm and Continue</a>
+              <a id=\"to-success\" href=\"{url_for('success_section')}\">/success/section</a>
             """
         )
         return render_template_string(base_template, title="Confirm", content=content_html)
@@ -137,6 +137,7 @@ def _get_app() -> Flask:
             password = request.form.get("password", "")
             if username == "alice" and password == "wonderland":
                 session["logged_in"] = True
+                session["login_method"] = "login"
                 return redirect(url_for("dashboard"))
             else:
                 error = "Invalid credentials"
@@ -145,8 +146,9 @@ def _get_app() -> Flask:
             err_html
             + """
               <form id="login-form" method="post">
-                <label>Username <input id="username" name="username" placeholder="username" /></label>
-                <label>Password <input id="password" name="password" type="password" placeholder="password" /></label>
+                <p>form#login-form</p>
+                <label>#username <input id="username" name="username" placeholder="username" /></label>
+                <label>#password <input id="password" name="password" type="password" placeholder="password" /></label>
                 <button id="login-submit" type="submit">Login</button>
               </form>
             """
@@ -160,7 +162,7 @@ def _get_app() -> Flask:
         content_html = (
             f"""
               <p>Welcome, Alice</p>
-              <a id=\"goto-success\" href=\"{url_for('success')}\">Proceed to Success</a>
+              <a id=\"goto-success\" href=\"{url_for('success_login') if session.get('login_method') in ('login', None) else url_for('success_otp')}\">{ '/success/login' if session.get('login_method') in ('login', None) else '/success/otp' }</a>
             """
         )
         return render_template_string(base_template, title="Dashboard", content=content_html)
@@ -171,8 +173,8 @@ def _get_app() -> Flask:
         content_html = (
             f"""
               <p>Catalog</p>
-              <a id=\"widgets-link\" href=\"{url_for('catalog_widgets')}\">Widgets</a>
-              <a id=\"gadgets-link\" href=\"{url_for('catalog_gadgets')}\">Gadgets</a>
+              <a id=\"widgets-link\" href=\"{url_for('catalog_widgets')}\">/catalog/widgets</a>
+              <a id=\"gadgets-link\" href=\"{url_for('catalog_gadgets')}\">/catalog/gadgets</a>
             """
         )
         return render_template_string(base_template, title="Catalog", content=content_html)
@@ -182,8 +184,8 @@ def _get_app() -> Flask:
         content_html = (
             f"""
               <p>Widgets</p>
-              <a id=\"widget-13\" href=\"{url_for('catalog_item', item_id=13)}\">Widget 13</a>
-              <a id=\"widget-37\" href=\"{url_for('catalog_item', item_id=37)}\">Widget 37</a>
+              <a id=\"widget-13\" href=\"{url_for('catalog_item', item_id=13)}\">/catalog/widgets/13</a>
+              <a id=\"widget-37\" href=\"{url_for('catalog_item', item_id=37)}\">/catalog/widgets/37</a>
             """
         )
         return render_template_string(base_template, title="Widgets", content=content_html)
@@ -193,7 +195,7 @@ def _get_app() -> Flask:
         content_html = (
             f"""
               <p>Gadgets (decoy)</p>
-              <a id=\"gadgets-back\" href=\"{url_for('catalog')}\">Back to Catalog</a>
+              <a id=\"gadgets-back\" href=\"{url_for('catalog')}\">/catalog</a>
             """
         )
         return render_template_string(base_template, title="Gadgets", content=content_html)
@@ -204,7 +206,7 @@ def _get_app() -> Flask:
         content_html = (
             f"""
               <p>Widget {item_id}</p>
-              <a id=\"add-to-cart\" href=\"{add_href}\">Add to Cart</a>
+              <a id=\"add-to-cart\" href=\"{add_href}\">{add_href}</a>
             """
         )
         return render_template_string(base_template, title=f"Widget {item_id}", content=content_html)
@@ -225,7 +227,7 @@ def _get_app() -> Flask:
         content_html = (
             f"""
               <p>Cart: {cart}</p>
-              <a id=\"to-checkout\" href=\"{next_href}\">Proceed to Checkout</a>
+              <a id=\"to-checkout\" href=\"{next_href}\">{next_href}</a>
             """
         )
         return render_template_string(base_template, title="Cart", content=content_html)
@@ -238,7 +240,7 @@ def _get_app() -> Flask:
         content_html = (
             f"""
               <p>Checkout</p>
-              <a id=\"to-address\" href=\"{url_for('address')}\">Enter Address</a>
+              <a id=\"to-address\" href=\"{url_for('address')}\">/address</a>
             """
         )
         return render_template_string(base_template, title="Checkout", content=content_html)
@@ -253,7 +255,8 @@ def _get_app() -> Flask:
         content_html = (
             """
               <form id="address-form" method="post">
-                <label>Street <input id="street" name="street" placeholder="street" /></label>
+                <p>form#address-form</p>
+                <label>#street <input id="street" name="street" placeholder="street" /></label>
                 <button id="address-submit" type="submit">Save</button>
               </form>
             """
@@ -267,7 +270,7 @@ def _get_app() -> Flask:
         content_html = (
             f"""
               <p>Review</p>
-              <a id=\"review-to-success\" href=\"{url_for('success')}\">Place Order</a>
+              <a id=\"review-to-success\" href=\"{url_for('success_catalog')}\">/success/catalog</a>
             """
         )
         return render_template_string(base_template, title="Review", content=content_html)
@@ -279,7 +282,7 @@ def _get_app() -> Flask:
         content_html = (
             f"""
               <p id=\"otp-code\">{session['otp']}</p>
-              <a id=\"to-otp-verify\" href=\"{url_for('otp_verify')}\">Go to OTP Verify</a>
+              <a id=\"to-otp-verify\" href=\"{url_for('otp_verify')}\">/otp-verify</a>
             """
         )
         return render_template_string(base_template, title="OTP Request", content=content_html)
@@ -290,11 +293,13 @@ def _get_app() -> Flask:
             code = request.form.get("otp", "")
             if code == session.get("otp"):
                 session["logged_in"] = True
+                session["login_method"] = "otp"
                 return redirect(url_for("dashboard"))
         content_html = (
             """
               <form id="otp-form" method="post">
-                <label>OTP <input id="otp-input" name="otp" placeholder="code" /></label>
+                <p>form#otp-form</p>
+                <label>#otp-input <input id="otp-input" name="otp" placeholder="code" /></label>
                 <button id="otp-submit" type="submit">Verify</button>
               </form>
             """
@@ -313,7 +318,7 @@ def _get_app() -> Flask:
               <form id=\"consent-form\" method=\"post\">
                 <button id=\"consent-submit\" type=\"submit\">Enable Consent</button>
               </form>
-              <a id=\"to-admin-key\" href=\"{url_for('admin_key')}\">Admin Key</a>
+              <a id=\"to-admin-key\" href=\"{url_for('admin_key')}\">/admin-key</a>
             """
         )
         return render_template_string(base_template, title="Preferences", content=content_html)
@@ -326,7 +331,7 @@ def _get_app() -> Flask:
         content_html = (
             f"""
               <p id=\"admin-key\">{key}</p>
-              <a id=\"to-admin-form\" href=\"{url_for('admin_form')}\">Enter Key</a>
+              <a id=\"to-admin-form\" href=\"{url_for('admin_form')}\">/admin-form</a>
             """
         )
         return render_template_string(base_template, title="Admin Key", content=content_html)
@@ -336,11 +341,12 @@ def _get_app() -> Flask:
         if request.method == "POST":
             key = request.form.get("admin_key", "")
             if key == "KEY-ALPHA":
-                return redirect(url_for("success"))
+                return redirect(url_for("success_admin"))
         content_html = (
             """
               <form id="admin-form" method="post">
-                <label>Key <input id="admin-key-input" name="admin_key" placeholder="key" /></label>
+                <p>form#admin-form</p>
+                <label>#admin-key-input <input id="admin-key-input" name="admin_key" placeholder="key" /></label>
                 <button id="admin-submit" type="submit">Submit</button>
               </form>
             """
@@ -355,7 +361,7 @@ def _get_app() -> Flask:
                 a = int(request.form.get("a", "0"))
                 b = int(request.form.get("b", "0"))
                 if a + b == 10:
-                    return redirect(url_for("success"))
+                    return redirect(url_for("success_sum"))
                 else:
                     message = "Numbers must sum to 10"
             except ValueError:
@@ -365,8 +371,9 @@ def _get_app() -> Flask:
             msg_html
             + """
               <form id="sum-form" method="post">
-                <label>A <input id="a" name="a" placeholder="integer" /></label>
-                <label>B <input id="b" name="b" placeholder="integer" /></label>
+                <p>form#sum-form</p>
+                <label>#a <input id="a" name="a" placeholder="integer" /></label>
+                <label>#b <input id="b" name="b" placeholder="integer" /></label>
                 <button id="sum-submit" type="submit">Submit</button>
               </form>
               <p id="hint">The sum of A and B must equal 10.</p>
@@ -380,7 +387,7 @@ def _get_app() -> Flask:
         content_html = (
             f"""
               <p id=\"token\">{token_value}</p>
-              <a id=\"to-token-form\" href=\"{url_for('form_token')}\">Go to Token Form</a>
+              <a id=\"to-token-form\" href=\"{url_for('form_token')}\">/form-token</a>
             """
         )
         return render_template_string(base_template, title="Token", content=content_html)
@@ -391,7 +398,7 @@ def _get_app() -> Flask:
         if request.method == "POST":
             token = request.form.get("token", "")
             if token == "TOKEN-XYZ":
-                return redirect(url_for("success"))
+                return redirect(url_for("success_token"))
             else:
                 message = "Invalid token"
         msg_html = f"<p id=\"message\">{message}</p>" if message else ""
@@ -399,22 +406,84 @@ def _get_app() -> Flask:
             msg_html
             + """
               <form id="token-form" method="post">
-                <label>Token <input id="token-input" name="token" placeholder="enter token" /></label>
+                <p>form#token-form</p>
+                <label>#token-input <input id="token-input" name="token" placeholder="enter token" /></label>
                 <button id="token-submit" type="submit">Submit</button>
               </form>
             """
         )
         return render_template_string(base_template, title="Token Form", content=content_html)
 
-    @app.route("/success")
-    def success():
+    # Unique success pages per flow
+    @app.route("/success/section")
+    def success_section():
         content_html = (
             """
-              <h2 id="success">Success!</h2>
-              <p>Benchmark goal reached.</p>
+              <h2 id=\"success\">Success!</h2>
+              <p>Benchmark goal reached: section flow.</p>
             """
         )
-        return render_template_string(base_template, title="Success", content=content_html)
+        return render_template_string(base_template, title="Success (Section)", content=content_html)
+
+    @app.route("/success/login")
+    def success_login():
+        content_html = (
+            """
+              <h2 id=\"success\">Success!</h2>
+              <p>Benchmark goal reached: login flow.</p>
+            """
+        )
+        return render_template_string(base_template, title="Success (Login)", content=content_html)
+
+    @app.route("/success/otp")
+    def success_otp():
+        content_html = (
+            """
+              <h2 id=\"success\">Success!</h2>
+              <p>Benchmark goal reached: otp flow.</p>
+            """
+        )
+        return render_template_string(base_template, title="Success (OTP)", content=content_html)
+
+    @app.route("/success/sum")
+    def success_sum():
+        content_html = (
+            """
+              <h2 id=\"success\">Success!</h2>
+              <p>Benchmark goal reached: sum flow.</p>
+            """
+        )
+        return render_template_string(base_template, title="Success (Sum)", content=content_html)
+
+    @app.route("/success/token")
+    def success_token():
+        content_html = (
+            """
+              <h2 id=\"success\">Success!</h2>
+              <p>Benchmark goal reached: token flow.</p>
+            """
+        )
+        return render_template_string(base_template, title="Success (Token)", content=content_html)
+
+    @app.route("/success/catalog")
+    def success_catalog():
+        content_html = (
+            """
+              <h2 id=\"success\">Success!</h2>
+              <p>Benchmark goal reached: catalog flow.</p>
+            """
+        )
+        return render_template_string(base_template, title="Success (Catalog)", content=content_html)
+
+    @app.route("/success/admin")
+    def success_admin():
+        content_html = (
+            """
+              <h2 id=\"success\">Success!</h2>
+              <p>Benchmark goal reached: admin flow.</p>
+            """
+        )
+        return render_template_string(base_template, title="Success (Admin)", content=content_html)
 
     @app.route("/site-guide")
     def site_guide():
@@ -422,30 +491,46 @@ def _get_app() -> Flask:
         site_map_html = (
             f"""
               <h2>Site Guide</h2>
-              <p>This page lists the main routes and key selectors for navigation.</p>
+              <p>This page lists the main routes, key selectors, and success pages.</p>
               <ul>
-                <li>Home: <code>/</code>
+                <li>Global Navigation:
                   <ul>
-                    <li>Products: <code>/section-a</code></li>
-                    <li>Login: <code>/login</code> (username: <b>alice</b>, password: <b>wonderland</b>)</li>
-                    <li>Sum Form: <code>/form-sum</code></li>
-                    <li>Token: <code>/token</code></li>
-                    <li>Catalog: <code>/catalog</code> → <code>/catalog/widgets</code> → <code>/catalog/widgets/37</code> → <code>/cart-add/37</code> → <code>/cart</code> → <code>/checkout</code> → <code>/address</code> → <code>/review</code> → <code>/success</code></li>
-                    <li>OTP Login: <code>/otp-request</code> (OTP shown) → <code>/otp-verify</code> → <code>/dashboard</code> → <code>/success</code></li>
-                    <li>Preferences/Admin: <code>/preferences</code> (enable consent) → <code>/admin-key</code> (KEY-ALPHA) → <code>/admin-form</code> → <code>/success</code></li>
+                    <li>Home: <code>/</code> (available from every page)</li>
+                    <li>Site Guide: <code>/site-guide</code> (footer link on every page)</li>
                   </ul>
                 </li>
-                <li>Section A: <code>/section-a</code>
+                <li>Section Flow:
                   <ul>
-                    <li>Correct item details: <code>/details/37</code></li>
-                    <li>Confirm then success: <code>/confirm/37</code> → <code>/success</code></li>
+                    <li><code>/</code> → <code>/section-a</code> → <code>/details/37</code> → <code>/confirm/37</code> → <code>/success/section</code></li>
                   </ul>
                 </li>
-                <li>Token Flow: <code>/token</code> → <code>/form-token</code> (token: <b>TOKEN-XYZ</b>) → <code>/success</code></li>
-                <li>Login Flow: <code>/login</code> → <code>/dashboard</code> → <code>/success</code></li>
-                <li>Sum Form: <code>/form-sum</code> (A+B must equal 10) → <code>/success</code></li>
+                <li>Login Flow:
+                  <ul>
+                    <li>Password: <code>/</code> → <code>/login</code> → submit (alice/wonderland) → <code>/dashboard</code> → <code>/success/login</code></li>
+                    <li>OTP: <code>/</code> → <code>/otp-request</code> → <code>/otp-verify</code> (enter shown OTP) → <code>/dashboard</code> → <code>/success/otp</code></li>
+                  </ul>
+                </li>
+                <li>Sum Flow:
+                  <ul>
+                    <li><code>/</code> → <code>/form-sum</code> (submit A+B=10) → <code>/success/sum</code></li>
+                  </ul>
+                </li>
+                <li>Token Flow:
+                  <ul>
+                    <li><code>/</code> → <code>/token</code> → <code>/form-token</code> (submit TOKEN-XYZ) → <code>/success/token</code></li>
+                  </ul>
+                </li>
+                <li>Catalog Flow:
+                  <ul>
+                    <li><code>/</code> → <code>/catalog</code> → <code>/catalog/widgets</code> → <code>/catalog/widgets/37</code> → <code>/cart-add/37</code> → <code>/cart</code> → <code>/checkout</code> → <code>/address</code> (submit) → <code>/review</code> → <code>/success/catalog</code></li>
+                  </ul>
+                </li>
+                <li>Admin Flow:
+                  <ul>
+                    <li><code>/</code> → <code>/preferences</code> (submit consent) → <code>/admin-key</code> → <code>/admin-form</code> (submit KEY-ALPHA) → <code>/success/admin</code></li>
+                  </ul>
+                </li>
               </ul>
-              <p>Tip: The "Site Guide" link is at the bottom of each page (may require scrolling).</p>
             """
         )
         return render_template_string(base_template, title="Site Guide", content=site_map_html)
@@ -465,6 +550,10 @@ def _get_app() -> Flask:
         except Exception:
             pass
         return ("", 200)
+
+    @app.route("/__health__")
+    def __health__():
+        return ("OK", 200)
 
     _app = app
     return app
@@ -492,8 +581,15 @@ def ensure_server_running(host: str = "127.0.0.1", port: int = 5005):
     _server_thread = threading.Thread(target=run_app, name="local_web_app_server", daemon=True)
     _server_thread.start()
 
-    # Give the server a brief moment to start
-    time.sleep(0.5)
+    # Wait until health endpoint responds OK to avoid races
+    for _ in range(100):  # up to ~5s
+        try:
+            r = _requests.get(f"http://{host}:{port}/__health__", timeout=0.05)
+            if r.status_code == 200:
+                break
+        except Exception:
+            pass
+        time.sleep(0.05)
     _server_started = True
 
 
@@ -518,3 +614,9 @@ def reset_server(host: str = "127.0.0.1", port: int = 5005):
 __all__ = ["ensure_server_running", "stop_server", "reset_server"]
 
 
+
+if __name__ == "__main__":
+    # Simple CLI to run the local web app directly for manual inspection
+    # Defaults to 127.0.0.1:5005 to match the benchmark
+    app = _get_app()
+    app.run(host="127.0.0.1", port=5005, debug=False, use_reloader=False, threaded=True)

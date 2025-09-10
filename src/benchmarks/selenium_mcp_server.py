@@ -34,7 +34,17 @@ class _Driver:
         options.add_argument("--disable-gpu")
         options.add_argument("--no-sandbox")
         options.add_argument("--disable-dev-shm-usage")
-        self.driver = webdriver.Chrome(options=options)
+        # Add small retry loop for flaky driver init
+        last_err: Optional[Exception] = None
+        for _ in range(5):
+            try:
+                self.driver = webdriver.Chrome(options=options)
+                break
+            except Exception as e:
+                last_err = e
+                time.sleep(0.1)
+        if not hasattr(self, 'driver'):
+            raise RuntimeError(f"Failed to initialize Chrome WebDriver: {last_err}")
         try:
             self.driver.delete_all_cookies()
         except Exception:
@@ -52,6 +62,11 @@ class SeleniumMCPServer:
         self.host = host
         self.port = port
         self._driver = _Driver()
+        # Probe initial readiness by loading a trivial data URL to stabilize the driver
+        try:
+            self._driver.driver.get("data:text/plain,ready")
+        except Exception:
+            pass
 
     async def _handle(self, websocket) -> None:
         try:
@@ -94,6 +109,31 @@ class SeleniumMCPServer:
                         except Exception:
                             pass
                         result = {"ok": True}
+                    elif tool == "browser.clearStorage":
+                        # Clear localStorage and sessionStorage
+                        try:
+                            self._driver.driver.execute_script(
+                                "window.localStorage.clear(); window.sessionStorage.clear();"
+                            )
+                        except Exception:
+                            pass
+                        result = {"ok": True}
+                    elif tool == "browser.hardReset":
+                        # Dispose of the current driver and create a new one
+                        try:
+                            try:
+                                self._driver.quit()
+                            except Exception:
+                                pass
+                            self._driver = _Driver()
+                            # Prime new driver
+                            try:
+                                self._driver.driver.get("data:text/plain,ready")
+                            except Exception:
+                                pass
+                            result = {"ok": True}
+                        except Exception as e:
+                            result = {"error": str(e)}
                     elif tool == "browser.getDomSummary":
                         viewport_only = bool(data.get("viewportOnly", True))
                         max_links = int(data.get("maxLinks", 25))
@@ -128,15 +168,34 @@ class SeleniumMCPServer:
     def _click(self, selector: str) -> None:
         d = self._driver.driver
         elem = None
-        if selector.startswith("/"):
-            elem = d.find_element(By.CSS_SELECTOR, f'a[href="{selector}"]')
+        sel = selector.strip()
+        # Support text-based selection: "text:Visible Label" or "text=Visible Label"
+        if sel.lower().startswith("text:") or sel.lower().startswith("text="):
+            label = sel.split(":", 1)[1] if ":" in sel else sel.split("=", 1)[1]
+            label = label.strip()
+            # Try exact link text first, then partial
+            try:
+                elem = d.find_element(By.LINK_TEXT, label)
+            except Exception:
+                elem = d.find_element(By.PARTIAL_LINK_TEXT, label)
+        elif sel.startswith("/"):
+            elem = d.find_element(By.CSS_SELECTOR, f'a[href="{sel}"]')
         else:
-            elem = d.find_element(By.CSS_SELECTOR, selector)
+            elem = d.find_element(By.CSS_SELECTOR, sel)
         elem.click()
 
     def _type(self, selector: str, text: str, clear: bool = True) -> None:
         d = self._driver.driver
         el = d.find_element(By.CSS_SELECTOR, selector)
+        # Ensure the element is in view and focused before typing
+        try:
+            d.execute_script("arguments[0].scrollIntoView({block:'center', inline:'nearest'});", el)
+        except Exception:
+            pass
+        try:
+            el.click()
+        except Exception:
+            pass
         if clear:
             try:
                 el.clear()
@@ -146,14 +205,18 @@ class SeleniumMCPServer:
 
     def _submit(self, selector: str) -> None:
         d = self._driver.driver
+        form = d.find_element(By.CSS_SELECTOR, selector)
+        # Prefer clicking the submit control for consistent browser navigation behavior
         try:
-            form = d.find_element(By.CSS_SELECTOR, selector)
-            form.submit()
-        except Exception:
-            # Fallback: click first submit button inside the form
-            form = d.find_element(By.CSS_SELECTOR, selector)
             btn = form.find_element(By.CSS_SELECTOR, 'button[type="submit"], input[type="submit"]')
             btn.click()
+        except Exception:
+            # Fallback to programmatic submit
+            try:
+                form.submit()
+            except Exception:
+                # Last resort: execute JS submit
+                d.execute_script("arguments[0].submit();", form)
 
     def _selector_exists(self, selector: str) -> bool:
         d = self._driver.driver
@@ -167,6 +230,10 @@ class SeleniumMCPServer:
         d = self._driver.driver
         html = d.page_source
         soup = BeautifulSoup(html, "html.parser")
+        # Visible text (compact)
+        visible_text = " ".join((soup.get_text() or "").split())
+        if len(visible_text) > 2000:
+            visible_text = visible_text[:2000]
         clickables = []
         for a in soup.find_all("a"):
             text = (a.get_text() or "").strip()
@@ -188,6 +255,7 @@ class SeleniumMCPServer:
         return {
             "url": d.current_url,
             "title": d.title,
+            "visible_text": visible_text,
             "elements": {
                 "clickables": clickables[:max_links],
                 "inputs": inputs[:max_inputs],
