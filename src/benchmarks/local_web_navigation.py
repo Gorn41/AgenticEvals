@@ -628,8 +628,14 @@ class _MCPBrowser:
 def _strip_code_fences(text: str) -> str:
     if not text:
         return text
-    # Remove triple backtick fences if present
-    return re.sub(r"```[a-zA-Z0-9]*\n([\s\S]*?)```", r"\1", text)
+    # Remove code fences (``` or ~~~ with optional language). Repeat until none remain.
+    pattern = re.compile(r"(?s)(```+|~~~+)[^\n]*\n(.*?)\n\\1")
+    while True:
+        new_text, count = pattern.subn(lambda m: m.group(2), text)
+        if count == 0:
+            break
+        text = new_text
+    return text
 
 
 def _extract_balanced_block(s: str, start_idx: int, open_char: str, close_char: str) -> Optional[str]:
@@ -664,24 +670,69 @@ def _extract_balanced_block(s: str, start_idx: int, open_char: str, close_char: 
 
 
 def _parse_action(text: str) -> Optional[Dict[str, Any]]:
-    """Parse a single ACTION block using balanced-brace extraction and validation.
+    """Robustly parse a single ACTION block using balanced-brace extraction and validation.
     Strategy:
-    1) Search from end for [ACTION: {...}] and extract balanced JSON
-    2) If not found, search entire text from end to start for the last balanced {...}
-    3) Validate required fields via _validate_action
+    1) Find the last [ACTION: marker (case-insensitive), skip whitespace, then extract the balanced {...}
+    2) Fallback: find the last balanced {...} object anywhere in the text
+    3) Secondary fallback: if a last balanced [...] array is present, parse first element as an action
+    4) Validate required fields via _validate_action (normalizes 'value'->'text' for type)
     """
     if not text:
         return None
+    # First, try to find a code-fenced JSON block immediately after an ACTION heading (e.g., ACTION:, **ACTION:**)
+    try:
+        marker_re = re.compile(r"(?im)^[^\n]*action[^\n]*:\s*$", re.IGNORECASE | re.MULTILINE)
+        last_marker: Optional[re.Match] = None
+        for m in marker_re.finditer(text):
+            last_marker = m
+        if last_marker is not None:
+            after = text[last_marker.end():]
+            fence_re = re.compile(r"(?is)\s*(?P<fence>```+|~~~+)[^\n]*\n(?P<body>.*?)(?:\n(?P=fence))")
+            fm = fence_re.search(after)
+            if fm:
+                body = fm.group("body").strip()
+                # Try direct object parse first
+                try:
+                    obj = json.loads(body)
+                except json.JSONDecodeError:
+                    obj = None
+                if isinstance(obj, dict):
+                    valid = _validate_action(json.dumps(obj))
+                    if valid:
+                        return valid
+                # If code block is an array, take first element
+                if isinstance(obj, list) and obj:
+                    first = obj[0]
+                    if isinstance(first, dict):
+                        valid = _validate_action(json.dumps(first))
+                        if valid:
+                            return valid
+                # As a fallback inside the block, extract last balanced object
+                last_open = body.rfind("{")
+                while last_open != -1:
+                    json_str = _extract_balanced_block(body, last_open, "{", "}")
+                    if json_str:
+                        valid = _validate_action(json_str)
+                        if valid:
+                            return valid
+                    last_open = body.rfind("{", 0, last_open)
+    except Exception:
+        pass
+
     text = _strip_code_fences(text)
-    idx = text.rfind("[ACTION:")
+
+    # Primary: handle [ACTION: marker (case-insensitive)
+    idx = text.lower().rfind("[action:")
     if idx != -1:
-        brace_idx = text.find("{", idx)
+        after = text[idx + len("[ACTION:"):].lstrip()
+        brace_idx = after.find("{")
         if brace_idx != -1:
-            json_str = _extract_balanced_block(text, brace_idx, "{", "}")
+            json_str = _extract_balanced_block(after, brace_idx, "{", "}")
             if json_str:
                 action = _validate_action(json_str)
                 if action:
                     return action
+
     # Fallback: scan backward for last balanced {...}
     last_open = text.rfind("{")
     while last_open != -1:
@@ -691,6 +742,24 @@ def _parse_action(text: str) -> Optional[Dict[str, Any]]:
             if action:
                 return action
         last_open = text.rfind("{", 0, last_open)
+
+    # Secondary fallback: if the model returned an array like [{...}], parse first element
+    last_array_open = text.rfind("[")
+    while last_array_open != -1:
+        arr_str = _extract_balanced_block(text, last_array_open, "[", "]")
+        if arr_str:
+            try:
+                arr = json.loads(arr_str)
+            except json.JSONDecodeError:
+                arr = None
+            if isinstance(arr, list) and arr:
+                first = arr[0]
+                if isinstance(first, dict):
+                    try:
+                        return _validate_action(json.dumps(first))
+                    except Exception:
+                        pass
+        last_array_open = text.rfind("[", 0, last_array_open)
     return None
 
 
@@ -704,11 +773,16 @@ def _validate_action(json_str: str) -> Optional[Dict[str, Any]]:
     a_type = action.get("type")
     if not isinstance(a_type, str):
         return None
+    # Normalize 'value' -> 'text' for type actions
+    if a_type == "type" and "text" not in action and "value" in action:
+        action["text"] = action["value"]
     if a_type in ("click", "type", "submit"):
         if not action.get("selector"):
             return None
-        if a_type == "type" and not isinstance(action.get("text"), str):
-            return None
+        if a_type == "type":
+            txt = action.get("text")
+            if not isinstance(txt, str):
+                return None
     elif a_type == "navigate":
         if not action.get("url"):
             return None
@@ -718,64 +792,113 @@ def _validate_action(json_str: str) -> Optional[Dict[str, Any]]:
 
 
 def _parse_plan(text: str) -> Optional[List[Dict[str, Any]]]:
-    """Parse a PLAN array using balanced-bracket extraction and validation.
+    """Robustly parse a PLAN array using balanced-bracket extraction and validation.
     Strategy:
-    1) Find the last [PLAN: [...]] and extract the balanced [...]
-    2) Fallback: find the last balanced [...] in the text
-    3) Validate each step structure
+    1) Find the last [PLAN: marker (case-insensitive), skip whitespace, then extract the balanced [...]
+    2) Fallback: find the last balanced [...] array anywhere in the text
+    3) Normalize action fields (e.g., 'value' -> 'text' for type actions)
+    4) Validate each step structure strictly
     """
     if not text:
         return None
-    text = _strip_code_fences(text)
-    idx = text.rfind("[PLAN:")
-    if idx != -1:
-        bracket_idx = text.find("[", idx)
-        if bracket_idx != -1:
-            json_str = _extract_balanced_block(text, bracket_idx, "[", "]")
+    plan: Optional[List[Dict[str, Any]]] = None
+
+    # 0) Prefer explicit code-fenced block following a PLAN heading (e.g., PLAN:, **PLAN:**)
+    try:
+        marker_re = re.compile(r"(?im)^[^\n]*plan[^\n]*:\s*$", re.IGNORECASE | re.MULTILINE)
+        last_marker: Optional[re.Match] = None
+        for m in marker_re.finditer(text):
+            last_marker = m
+        if last_marker is not None:
+            after = text[last_marker.end():]
+            fence_re = re.compile(r"(?is)\s*(?P<fence>```+|~~~+)[^\n]*\n(?P<body>.*?)(?:\n(?P=fence))")
+            fm = fence_re.search(after)
+            if fm:
+                body = fm.group("body").strip()
+                # Try direct parse as array
+                try:
+                    candidate = json.loads(body)
+                except json.JSONDecodeError:
+                    candidate = None
+                if isinstance(candidate, list):
+                    plan = candidate
+                else:
+                    # Fallback within the code block: last balanced array
+                    last_open = body.rfind("[")
+                    while last_open != -1:
+                        json_str = _extract_balanced_block(body, last_open, "[", "]")
+                        if json_str:
+                            try:
+                                candidate = json.loads(json_str)
+                            except json.JSONDecodeError:
+                                candidate = None
+                            if isinstance(candidate, list):
+                                plan = candidate
+                                break
+                        last_open = body.rfind("[", 0, last_open)
+    except Exception:
+        pass
+
+    # 1) Handle inline [PLAN: ...] marker in free text
+    if plan is None:
+        text_no_fences = _strip_code_fences(text)
+        idx = text_no_fences.lower().rfind("[plan:")
+        if idx != -1:
+            after = text_no_fences[idx + len("[PLAN:"):].lstrip()
+            bracket_idx = after.find("[")
+            if bracket_idx != -1:
+                json_str = _extract_balanced_block(after, bracket_idx, "[", "]")
+                if json_str:
+                    try:
+                        candidate = json.loads(json_str)
+                    except json.JSONDecodeError as e:
+                        logger.warning(f"JSON decode error in plan: {e}")
+                        candidate = None
+                    if isinstance(candidate, list):
+                        plan = candidate
+
+    # 2) Final fallback: last balanced array anywhere
+    if plan is None:
+        text_no_fences = _strip_code_fences(text)
+        last_open = text_no_fences.rfind("[")
+        while last_open != -1:
+            json_str = _extract_balanced_block(text_no_fences, last_open, "[", "]")
             if json_str:
                 try:
-                    plan = json.loads(json_str)
-                except json.JSONDecodeError as e:
-                    logger.warning(f"JSON decode error in plan: {e}")
-                    plan = None
-                if isinstance(plan, list):
-                    ok = True
-                    for action in plan:
-                        if not isinstance(action, dict) or not isinstance(action.get("type"), str):
-                            ok = False; break
-                    if ok:
-                        return plan
-    # Fallback: last balanced [...]
-    last_open = text.rfind("[")
-    while last_open != -1:
-        json_str = _extract_balanced_block(text, last_open, "[", "]")
-        if json_str:
-            try:
-                plan = json.loads(json_str)
-            except json.JSONDecodeError:
-                plan = None
-            if isinstance(plan, list):
-                ok = True
-                for action in plan:
-                    if not isinstance(action, dict) or not isinstance(action.get("type"), str):
-                        ok = False; break
-                if ok:
-                    return plan
-        last_open = text.rfind("[", 0, last_open)
+                    candidate = json.loads(json_str)
+                except json.JSONDecodeError:
+                    candidate = None
+                if isinstance(candidate, list):
+                    plan = candidate
+                    break
+            last_open = text_no_fences.rfind("[", 0, last_open)
+
     if not isinstance(plan, list):
         return None
+
+    # Normalize: support 'value' -> 'text' for type actions
+    for action in plan:
+        if isinstance(action, dict) and action.get("type") == "type" and "text" not in action and "value" in action:
+            action["text"] = action["value"]
+
+    # Strict validation of actions
     for action in plan:
         if not isinstance(action, dict):
             return None
         a_type = action.get("type")
         if not isinstance(a_type, str):
             return None
-        if a_type in ("click", "type", "submit") and not action.get("selector"):
+        if a_type in ("click", "type", "submit"):
+            if not action.get("selector"):
+                return None
+            if a_type == "type" and ("text" not in action or not isinstance(action.get("text"), str)):
+                return None
+        elif a_type == "navigate":
+            if not action.get("url"):
+                return None
+        else:
             return None
-        if a_type == "type" and ("text" not in action or not isinstance(action.get("text"), str)):
-            return None
-        if a_type == "navigate" and not action.get("url"):
-            return None
+
     return plan
 
 
