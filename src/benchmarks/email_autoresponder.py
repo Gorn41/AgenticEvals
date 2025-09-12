@@ -347,7 +347,7 @@ CLASSIFICATION:"""
         try:
             # Generate model response
             model_response = await model.generate(task.prompt)
-            execution_time = time.time() - start_time
+            execution_time = float(model_response.latency or 0.0)
             
             # Calculate score
             score = self.calculate_score(task, model_response)
@@ -369,7 +369,7 @@ CLASSIFICATION:"""
             )
             
         except Exception as e:
-            execution_time = time.time() - start_time
+            execution_time = 0.0
             logger.error(f"Error evaluating task {task.task_id}: {e}")
             
             return TaskResult(

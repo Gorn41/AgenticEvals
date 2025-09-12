@@ -7,7 +7,7 @@ environment is served by `src/benchmarks/local_web_app.py`.
 
 Key properties:
 - Goal-based scoring: score = optimal_steps / agent_steps (clamped to [0,1])
-- Execution time: sum of durations of model.generate calls (time.time() before/after)
+- Execution time: sum of ModelResponse.latency across calls (excludes sleeps/retries)
 - Rate limiting: 15s sleep between turns
 - Metrics: output_tokens, steps_taken, optimal_steps, invalid_actions, action_trace
 """
@@ -1105,9 +1105,8 @@ class LocalWebNavigationBenchmark(BaseBenchmark):
                 }
                 prompt = _build_exploration_prompt(observation_with_memory, goal_summary)
 
-                call_started_at = time.time()
                 response = await model.generate(prompt)
-                accumulated_call_time += (time.time() - call_started_at)
+                accumulated_call_time += (response.latency or 0.0)
                 if response.completion_tokens:
                     total_tokens += response.completion_tokens
 
@@ -1233,9 +1232,8 @@ class LocalWebNavigationBenchmark(BaseBenchmark):
             goal_summary = f"Navigate until path is '{goal['path']}' and element '{goal['selector']}' exists (flow-specific). Start from a fresh session at {task.metadata['start_url']}."
             prompt = _build_exploitation_prompt(observation_exploit, goal_summary)
 
-            call_started_at = time.time()
             response = await model.generate(prompt)
-            accumulated_call_time += (time.time() - call_started_at)
+            accumulated_call_time += (response.latency or 0.0)
             if response.completion_tokens:
                 total_tokens += response.completion_tokens
 

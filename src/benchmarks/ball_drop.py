@@ -208,9 +208,8 @@ class BallDropBenchmark(BaseBenchmark):
         action = None
         
         try:
-            call_started_at = time.time()
             response = await model.generate(prompt)
-            call_time = time.time() - call_started_at
+            call_time = float(response.latency or 0.0)
             if wait_seconds > 0:
                 await asyncio.sleep(wait_seconds)
             action = self._parse_action(response.text)

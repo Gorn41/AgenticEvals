@@ -529,7 +529,7 @@ class ManufacturingOptimizationBenchmark(BaseBenchmark):
         """Evaluate a single manufacturing optimization task."""
         start_time = time.time()
         model_response = await model.generate(task.prompt)
-        execution_time = time.time() - start_time
+        execution_time = float(model_response.latency or 0.0)
 
         weights = task.metadata["weights"]
         q_threshold = float(task.metadata["quality_threshold"])

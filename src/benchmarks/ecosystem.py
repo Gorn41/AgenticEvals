@@ -472,9 +472,8 @@ class EcosystemLearningBenchmark(BaseBenchmark):
         predicted_relationships: Dict[str, List[str]] = {}
 
         try:
-            api_start = time.time()
             response = await model.generate(prompt)
-            api_time = time.time() - api_start
+            api_time = float(response.latency or 0.0)
             wait_seconds = float(self.config.additional_params.get("wait_seconds", 15.0)) if getattr(self, "config", None) else 15.0
             if wait_seconds > 0:
                 await asyncio.sleep(wait_seconds)

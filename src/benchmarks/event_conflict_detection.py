@@ -679,9 +679,8 @@ class EventConflictDetectionBenchmark(BaseBenchmark):
                     is_final=is_final,
                 )
 
-                call_started_at = time.time()
                 response = await model.generate(prompt)
-                accumulated_call_time += (time.time() - call_started_at)
+                accumulated_call_time += (response.latency or 0.0)
                 if response.completion_tokens:
                     total_tokens += response.completion_tokens
 

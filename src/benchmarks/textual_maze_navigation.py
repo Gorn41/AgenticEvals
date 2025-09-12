@@ -347,9 +347,8 @@ Your move:"""
         
         try:
             # Initial move
-            call_started_at = time.time()
             initial_response = await model.generate(task.prompt)
-            accumulated_call_time += (time.time() - call_started_at)
+            accumulated_call_time += (initial_response.latency or 0.0)
             conversation_history.append(("initial", task.prompt, initial_response.text))
             
             if initial_response.completion_tokens:
@@ -378,9 +377,8 @@ Your move:"""
                 
                 # Create continuation prompt
                 continuation_prompt = self._create_continuation_prompt(maze, state, move)
-                call_started_at = time.time()
                 response = await model.generate(continuation_prompt)
-                accumulated_call_time += (time.time() - call_started_at)
+                accumulated_call_time += (response.latency or 0.0)
                 conversation_history.append(("continuation", continuation_prompt, response.text))
                 
                 if response.completion_tokens:

@@ -465,7 +465,7 @@ class TaskSchedulingBenchmark(BaseBenchmark):
         """Evaluate a single task scheduling task."""
         start_time = time.time()
         model_response = await model.generate(task.prompt)
-        execution_time = time.time() - start_time
+        execution_time = float(model_response.latency or 0.0)
 
         schedule = self._parse_schedule(model_response.text)
         

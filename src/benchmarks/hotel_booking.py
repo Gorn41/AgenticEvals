@@ -583,7 +583,7 @@ OUTPUT THE SEARCH STEPS ONLY:"""
         try:
             # Generate model response
             model_response = await model.generate(task.prompt)
-            execution_time = time.time() - start_time
+            execution_time = float(model_response.latency or 0.0)
             
             # Parse search plan
             parsed_plan = self._parse_search_plan(model_response.text)
@@ -639,7 +639,7 @@ OUTPUT THE SEARCH STEPS ONLY:"""
                 score=0.0,
                 metrics={"error": str(e)},
                 model_response=None,
-                execution_time=time.time() - start_time
+                execution_time=0.0
             )
     
     def calculate_score(self, task: Task, model_response: ModelResponse) -> float:

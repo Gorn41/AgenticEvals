@@ -714,7 +714,7 @@ class PortfolioOptimizationBenchmark(BaseBenchmark):
         transaction_cost = scenario['transaction_cost_per_trade']
         
         model_response = await model.generate(task.prompt)
-        execution_time = time.time() - start_time
+        execution_time = float(model_response.latency or 0.0)
 
         parsed_portfolio = self._parse_response(model_response.text, assets)
 

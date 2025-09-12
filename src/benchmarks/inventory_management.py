@@ -332,9 +332,8 @@ Current State (before your restock this turn):
 
 
             # Generate model response
-            call_started_at = time.time()
             response = await model.generate(prompt)
-            accumulated_call_time += (time.time() - call_started_at)
+            accumulated_call_time += (response.latency or 0.0)
             if response.completion_tokens:
                 total_tokens_used += response.completion_tokens
 

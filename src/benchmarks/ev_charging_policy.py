@@ -422,9 +422,8 @@ class EVChargingPolicyBenchmark(BaseBenchmark):
 
         try:
             for turn in range(1, total_turns + 1):
-                call_started = time.time()
                 response = await model.generate(last_prompt)
-                accumulated_call_time += (time.time() - call_started)
+                accumulated_call_time += (response.latency or 0.0)
                 model_response = response
                 if response.completion_tokens:
                     total_tokens += response.completion_tokens

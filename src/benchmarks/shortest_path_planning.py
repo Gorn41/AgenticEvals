@@ -767,7 +767,7 @@ IMPORTANT:
         
         try:
             model_response = await model.generate(task.prompt)
-            execution_time = time.time() - start_time
+            execution_time = float(model_response.latency or 0.0)
             
             # 1. Parse the model's response
             path_nodes = self._parse_path_response(model_response.text)
@@ -853,7 +853,7 @@ IMPORTANT:
 
         except Exception as e:
             logger.error(f"Error evaluating task {task.task_id}: {str(e)}")
-            return self._create_task_result(task, None, time.time() - start_time, 0.0, "error", str(e))
+            return self._create_task_result(task, None, 0.0, 0.0, "error", str(e))
 
     def _create_task_result(self, task: Task, model_response: Optional[ModelResponse], execution_time: float, score: float, status: str, message: str, extra_metrics: Dict = {}) -> TaskResult:
         """Helper to create a TaskResult object."""

@@ -193,8 +193,12 @@ class GeminiModel(BaseModel):
             return None
         return None
 
-    def _call_with_retries_sync(self, func) -> Any:
-        """Call a function with retries using GAPIC Retry if available, else manual backoff."""
+    def _call_with_retries_sync(self, func) -> tuple[Any, float]:
+        """Call a function with retries and return (result, success_duration_seconds).
+
+        Uses GAPIC Retry if available; otherwise manual truncated exponential backoff.
+        Measures only the successful attempt duration, excluding backoff waits and failed attempts.
+        """
         policy = self._get_retry_policy_values()
         if GAPIC_RETRY_AVAILABLE and gapic_retry is not None:
             retry = gapic_retry.Retry(
@@ -204,7 +208,11 @@ class GeminiModel(BaseModel):
                 multiplier=policy["multiplier"],
                 deadline=policy["deadline"],
             )
-            return retry(func)()
+            def timed_call():
+                start = time.time()
+                result = func()
+                return result, time.time() - start
+            return retry(timed_call)()
 
         # Manual truncated exponential backoff
         delay = policy["initial_delay"]
@@ -214,7 +222,9 @@ class GeminiModel(BaseModel):
         last_error = None
         for attempt in range(max_retries + 1):
             try:
-                return func()
+                start = time.time()
+                result = func()
+                return result, time.time() - start
             except Exception as error:  # noqa: BLE001
                 last_error = error
                 if not self._is_transient_error(error) or attempt == max_retries:
@@ -227,8 +237,11 @@ class GeminiModel(BaseModel):
             raise last_error
         raise RuntimeError("Retry loop exited unexpectedly")
 
-    async def _call_with_retries_async(self, func_coro) -> Any:
-        """Call an async function with manual truncated exponential backoff."""
+    async def _call_with_retries_async(self, func_coro) -> tuple[Any, float]:
+        """Call an async function with manual truncated exponential backoff.
+
+        Returns (result, success_duration_seconds). Only the successful attempt duration is measured.
+        """
         policy = self._get_retry_policy_values()
         delay = policy["initial_delay"]
         max_delay = policy["max_delay"]
@@ -237,7 +250,9 @@ class GeminiModel(BaseModel):
         last_error = None
         for attempt in range(max_retries + 1):
             try:
-                return await func_coro()
+                start = time.time()
+                result = await func_coro()
+                return result, time.time() - start
             except Exception as error:  # noqa: BLE001
                 last_error = error
                 if not self._is_transient_error(error) or attempt == max_retries:
@@ -254,83 +269,133 @@ class GeminiModel(BaseModel):
         """Generate a response asynchronously."""
         start_time = time.time()
         
+        response = None
         try:
             async def _do_call():
                 return await self.client.aio.models.generate_content(
-                    model=self.config.model_name,
-                    contents=prompt,
-                    config=self.generation_config
-                )
+                model=self.config.model_name,
+                contents=prompt,
+                config=self.generation_config
+            )
 
-            response = await self._call_with_retries_async(_do_call)
-            latency = time.time() - start_time
+            response, success_latency = await self._call_with_retries_async(_do_call)
+            latency = success_latency
             
-            # Manually count completion tokens
-            completion_tokens = None
-            if hasattr(response, 'text'):
-                completion_tokens = (await self.client.aio.models.count_tokens(
-                    model=self.config.model_name,
-                    contents=response.text
-                )).total_tokens
+            # Fallback token counts if usage metadata is missing or zero
+            prompt_tokens_override: Optional[int] = None
+            completion_tokens_override: Optional[int] = None
+            if isinstance(prompt, str) and prompt:
+                prompt_tokens_override = await self._count_tokens_async(prompt)
+            raw_text = getattr(response, 'text', None)
+            if isinstance(raw_text, str) and raw_text:
+                completion_tokens_override = await self._count_tokens_async(raw_text)
 
-            return self._create_model_response(response, latency, completion_tokens_override=completion_tokens)
+            return self._create_model_response(
+                response,
+                latency,
+                completion_tokens_override=completion_tokens_override,
+                prompt_tokens_override=prompt_tokens_override,
+            )
         except Exception as e:
             logger.error(f"Error generating response with Gemini: {e}")
-            logger.debug(f"Response object that caused error: {response}")
+            if response is not None:
+                logger.debug(f"Response object that caused error: {response}")
             raise
     
     def generate_sync(self, prompt: str, **kwargs) -> ModelResponse:
         """Generate a response synchronously."""
         start_time = time.time()
         
+        response = None
         try:
             def _do_call():
                 return self.client.models.generate_content(
-                    model=self.config.model_name,
-                    contents=prompt,
-                    config=self.generation_config
-                )
+                model=self.config.model_name,
+                contents=prompt,
+                config=self.generation_config
+            )
 
-            response = self._call_with_retries_sync(_do_call)
-            latency = time.time() - start_time
+            response, success_latency = self._call_with_retries_sync(_do_call)
+            latency = success_latency
 
-            # Manually count completion tokens
-            completion_tokens = None
-            if hasattr(response, 'text'):
-                completion_tokens = self.client.models.count_tokens(
-                    model=self.config.model_name,
-                    contents=response.text
-                ).total_tokens
+            # Fallback token counts if usage metadata is missing or zero
+            prompt_tokens_override: Optional[int] = None
+            completion_tokens_override: Optional[int] = None
+            if isinstance(prompt, str) and prompt:
+                prompt_tokens_override = self._count_tokens_sync(prompt)
+            raw_text = getattr(response, 'text', None)
+            if isinstance(raw_text, str) and raw_text:
+                completion_tokens_override = self._count_tokens_sync(raw_text)
 
-            return self._create_model_response(response, latency, completion_tokens_override=completion_tokens)
+            return self._create_model_response(
+                response,
+                latency,
+                completion_tokens_override=completion_tokens_override,
+                prompt_tokens_override=prompt_tokens_override,
+            )
         except Exception as e:
             logger.error(f"Error generating response with Gemini: {e}")
+            if response is not None:
+                logger.debug(f"Response object that caused error: {response}")
             raise
 
     def _get_token_counts(self, response: Any) -> tuple[Optional[int], Optional[int], Optional[int]]:
-        """Extract token counts from the response metadata."""
+        """Extract token counts from the response metadata across SDK variants."""
         try:
-            if hasattr(response, 'usage_metadata'):
-                logger.debug(f"Full response object for token count extraction: {response}")
-                prompt_tokens = response.usage_metadata.prompt_token_count
-                total_tokens = response.usage_metadata.total_token_count
-                
-                if hasattr(response.usage_metadata, 'candidates_token_count'):
-                    completion_tokens = response.usage_metadata.candidates_token_count
-                else:
-                    # Calculate completion tokens if not directly available
-                    completion_tokens = total_tokens - prompt_tokens
-                    
-                return prompt_tokens, completion_tokens, total_tokens
-        except (AttributeError, TypeError, KeyError) as e:
+            usage = getattr(response, 'usage_metadata', None)
+            if usage is None:
+                usage = getattr(response, 'usage', None)
+            if usage is None:
+                return None, None, None
+
+            def _read(obj: Any, names: List[str]) -> Optional[int]:
+                for name in names:
+                    try:
+                        if hasattr(obj, name):
+                            value = getattr(obj, name)
+                            if isinstance(value, (int, float)):
+                                return int(value)
+                        elif isinstance(obj, dict) and name in obj:
+                            value = obj[name]
+                            if isinstance(value, (int, float)):
+                                return int(value)
+                    except Exception:
+                        continue
+                return None
+
+            prompt_tokens = _read(usage, ['prompt_token_count', 'prompt_tokens', 'input_token_count', 'input_tokens'])
+            completion_tokens = _read(usage, ['candidates_token_count', 'completion_token_count', 'output_token_count', 'output_tokens'])
+            total_tokens = _read(usage, ['total_token_count', 'total_tokens'])
+
+            if completion_tokens is None and prompt_tokens is not None and total_tokens is not None:
+                try:
+                    completion_tokens = max(0, int(total_tokens) - int(prompt_tokens))
+                except Exception:
+                    completion_tokens = None
+            
+            return prompt_tokens, completion_tokens, total_tokens
+        except Exception as e:
             logger.warning(f"Could not extract token counts from response: {e}")
             logger.debug(f"Response object that caused error: {response}")
         return None, None, None
 
-    def _create_model_response(self, response, latency: float, completion_tokens_override: Optional[int] = None) -> ModelResponse:
+    def _create_model_response(
+        self,
+        response,
+        latency: float,
+        completion_tokens_override: Optional[int] = None,
+        prompt_tokens_override: Optional[int] = None,
+    ) -> ModelResponse:
         """Create a ModelResponse object from the raw Gemini response."""
         logger.debug(f"Full response object for token count extraction: {response}")
-        response_text = response.text if hasattr(response, 'text') else "RESPONSE_TEXT_UNAVAILABLE"
+        raw_text = getattr(response, 'text', None)
+        # Ensure a valid string for ModelResponse.text even if SDK returns None or non-str types
+        if raw_text is None:
+            response_text = ""
+        elif isinstance(raw_text, str):
+            response_text = raw_text
+        else:
+            response_text = str(raw_text)
         
         # Extract token usage
         prompt_tokens, completion_tokens, total_tokens = self._get_token_counts(response)
@@ -338,6 +403,10 @@ class GeminiModel(BaseModel):
         if completion_tokens_override is not None:
             completion_tokens = completion_tokens_override
             if prompt_tokens is not None:
+                total_tokens = prompt_tokens + completion_tokens
+        if prompt_tokens_override is not None:
+            prompt_tokens = prompt_tokens_override
+            if completion_tokens is not None:
                 total_tokens = prompt_tokens + completion_tokens
         
         return ModelResponse(
@@ -371,3 +440,26 @@ class GeminiModel(BaseModel):
             "model_type": "Gemini",
         })
         return base_info 
+
+    # --- Token counting helpers -------------------------------------------------
+    def _count_tokens_sync(self, text: str) -> Optional[int]:
+        try:
+            result = self.client.models.count_tokens(
+                model=self.config.model_name,
+                contents=text,
+            )
+            value = getattr(result, 'total_tokens', None)
+            return int(value) if isinstance(value, (int, float)) else None
+        except Exception:
+            return None
+
+    async def _count_tokens_async(self, text: str) -> Optional[int]:
+        try:
+            result = await self.client.aio.models.count_tokens(
+                model=self.config.model_name,
+                contents=text,
+            )
+            value = getattr(result, 'total_tokens', None)
+            return int(value) if isinstance(value, (int, float)) else None
+        except Exception:
+            return None
