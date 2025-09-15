@@ -327,6 +327,10 @@ source MMAUvenv/bin/activate
 cd axlearn
 pip install ".[mmau]"
 cd ..
+# Copy MMAU setup and runner scripts from the AgenticEvals root into the 
+# new MMAU_validation directory
+cp PATH_TO_AgenticEvals/MMAU_setup.py .
+cp PATH_TO_AgenticEvals/run_MMAU_validation.sh .
 # Run the setup script associated with MMAU (note that you will need 
 # Google Application Credentials, Vertex AI details and an OpenAI key for this)
 python3 MMAU_setup.py
