@@ -2,12 +2,12 @@
 set -euo pipefail
 
 # Activate Python virtual environment
-if [ ! -f ".venv/bin/activate" ]; then
-  echo "Error: Python venv not found at .venv/. Create it and install dependencies." >&2
+if [ ! -f "MMAUvenv/bin/activate" ]; then
+  echo "Error: Python venv not found at MMAUvenv/. Create it and install dependencies." >&2
   exit 1
 fi
 # shellcheck disable=SC1091
-source .venv/bin/activate
+source MMAUvenv/bin/activate
 
 # Prefer local axlearn (repo) over installed site-packages
 export PYTHONPATH="$(pwd)/axlearn:${PYTHONPATH:-}"
