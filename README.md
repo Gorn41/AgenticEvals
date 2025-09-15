@@ -47,6 +47,8 @@ export GOOGLE_API_KEY="your-gemini-api-key"
 
 ### 3. Run Evaluations
 
+Note that it is recommend that you close any Chrome/ChromeDriver processes before running the benchmark.
+
 ```bash
 python3 run.py --model gemma-3-27b-it
 ```
