@@ -185,7 +185,7 @@ This value is propagated to all benchmarks and used for any internal delays.
 - `--verbose`: print additional per-task diagnostics.
 - `--validate`: enable validation/cross-validation reporting.
 - `--validation-config <path>`: YAML listing validation benchmarks and their mapped agent types.
-- `--validation-only`: skip running benchmarks and compute validation proxies from existing results.
+- `--validation-only`: skip running core benchmarks and run validation benchmarks.
 
 ## Project Structure
 
