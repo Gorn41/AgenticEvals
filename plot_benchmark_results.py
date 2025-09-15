@@ -77,11 +77,11 @@ def plot_benchmark_csv_results(csv_file_path: Path):
 
     # Plotting
     fig, axs = plt.subplots(1, 3, figsize=(18, 6))
-    fig.suptitle(f'Benchmark Performance Analysis for {model_name}', fontsize=16)
+    fig.suptitle(f'Performance for {model_name} per Task', fontsize=16)
 
-    # Average Score by Benchmark
+    # Average Score per Task
     axs[0].bar(benchmarks, avg_scores, yerr=std_scores, color='lightgreen', capsize=5)
-    axs[0].set_title('Average Score by Benchmark')
+    axs[0].set_title('Average Score per Task')
     axs[0].set_ylabel('Average Score')
     try:
         score_upper = max((s + e) for s, e in zip(avg_scores, std_scores)) if avg_scores and std_scores else (max(avg_scores) if avg_scores else 1.0)

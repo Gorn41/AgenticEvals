@@ -36,11 +36,11 @@ def plot_csv_results(csv_file_path: Path):
             std_tokens.append(float(row[6]) if len(row) > 6 and row[6] != '' else 0.0)
 
     fig, axs = plt.subplots(1, 3, figsize=(18, 6))
-    fig.suptitle(f'Aggregated Performance by Agent Type for {model_name}', fontsize=16)
+    fig.suptitle(f'Performance by Agent Type for {model_name}', fontsize=16)
 
     # Weighted Average Score by Agent Type
     axs[0].bar(agent_types, avg_scores, yerr=std_scores, color='cornflowerblue', capsize=5)
-    axs[0].set_title('Weighted Average Score')
+    axs[0].set_title('Average Score by Agent Type')
     axs[0].set_ylabel('Score')
     try:
         score_upper = max((s + e) for s, e in zip(avg_scores, std_scores)) if avg_scores and std_scores else (max(avg_scores) if avg_scores else 1.0)
@@ -51,7 +51,7 @@ def plot_csv_results(csv_file_path: Path):
 
     # Average Execution Time by Agent Type
     axs[1].bar(agent_types, avg_times, yerr=std_times, color='mediumseagreen', capsize=5)
-    axs[1].set_title('Average Execution Time (s)')
+    axs[1].set_title('Average Execution Time (s) by Agent Type')
     axs[1].set_ylabel('Seconds (log scale)')
     if any(v > 0 for v in avg_times):
         axs[1].set_yscale('log')
@@ -59,7 +59,7 @@ def plot_csv_results(csv_file_path: Path):
 
     # Average Output Tokens by Agent Type
     axs[2].bar(agent_types, avg_tokens, yerr=std_tokens, color='lightcoral', capsize=5)
-    axs[2].set_title('Average Output Tokens')
+    axs[2].set_title('Average Output Tokens by Agent Type')
     axs[2].set_ylabel('Tokens (log scale)')
     if any(v > 0 for v in avg_tokens):
         axs[2].set_yscale('log')

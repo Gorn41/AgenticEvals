@@ -19,6 +19,8 @@ AgenticEvals provides a structured framework to evaluate how well LLMs can embod
 ```bash
 git clone https://github.com/Gorn41/AgenticEvals.git
 cd AgenticEvals
+python -m venv .venv
+source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
@@ -87,7 +89,7 @@ You can run supported open-source models locally using vLLM instead of remote AP
 python3 run.py --local --model google/gemma-3-4b-it --wait-seconds 0
 ```
 
-You can also provide a YAML config to control vLLM engine parameters and sampling settings. A default `vllm_config.yaml` is included at the repo root—edit it as needed:
+You can also provide a YAML config to control vLLM engine parameters and sampling settings. A default `vllm_config.yaml` is included at the repo root; edit it as needed:
 
 ```yaml
 # vllm_config.yaml
@@ -172,7 +174,7 @@ This value is propagated to all benchmarks and used for any internal delays.
 - `--model <name>`: model identifier (e.g., `gemma-3-4b-it` or HF id with `--local`).
 - `--local`: run locally via vLLM (open-source models only).
 - `--vllm-config <path>`: YAML with vLLM engine/sampling params.
-- `--wait-seconds <float>`: delay between tasks/turns (default 15.0; set 0 to disable).
+- `--wait-seconds <float>`: delay between scenarios/turns (default 15.0; set 0 to disable).
 - `--plot`: generate plots and CSVs under `results/<model>/`.
 - `--verbose`: print additional per-task diagnostics.
 - `--validate`: enable validation/cross-validation reporting.
@@ -194,8 +196,13 @@ AgenticEvals/
 ├── run_tests.py                # Helper to run unit tests
 ├── quick_start.py              # Minimal example runner
 ├── example_usage.py            # Example: loading a model and running a benchmark
+├── plot_agent_type_rankings.py # Plotting utility script
 ├── plot_agent_type_results.py  # Plotting utility script
 ├── plot_benchmark_results.py   # Plotting utility script
+├── MMAU_setup.py               # Setup for MMAU validation
+├── run_MMAU_validation.sh      # Convenience script to run MMAU validation 
+├── vllm_config.yaml            # vLLM configuration file
+├── validation_benchmarks.yaml  # validation benchmark configuration file
 ├── results/                    # Generated results, plots, CSVs
 │   └── <model_name>/           # E.g., gemma-3-27b-it, contains CSVs and plots
 ├── src/
@@ -282,7 +289,7 @@ The key characteristics of model-based reflex agents/tasks include maintaining a
 The key characteristics of goal-based agents/tasks include decision-making based on what actions would help the agent better achieve a goal, the ability to effectively plan for future actions and/or adjust plans.
 
 - **hotel_booking**: Multi-step planning and booking. This task emphasizes planning comprehensiveness and efficiency.
-- **shortest_path_planning**: Find the shortest path in a directed, weighted graph. This task emphasises the ability to do long-horizon planning.
+- **shortest_path_planning**: Find the shortest path in a directed, weighted graph. This task emphasises the ability to do multi-goal long-horizon planning.
 - **local_web_navigation**: Structured meta-planning benchmark on a deterministic local site. This task emphasizes the ability to perform meta-planning because in order to do well, the agent must plan during the exploration phase to optimize planning in the exploitation phase.
 
 ### Utility-Based Agent
@@ -295,13 +302,41 @@ The key characteristics of utility-based agents/tasks include decision-making ba
 ### Learning Agent
 The key characteristics of learning agents/tasks include continuous learning from data from the environment to improve decision-making, being able to learn from past data to generalize and make decisions on unseen data, and being flexible and able to adapt to and learn from data from a wide variety of tasks or environment dynamics.
 
-- **ball_drop**: Physics-based prediction task. This task emphasizes agent flexibility and its ability to learn from a wide range of environmental dynamics as well as learning involving in-context memory.
+- **ball_drop**: Physics-based prediction task. TThis task emphasizes the ability of an agent to learn and generalize to make decisions on unseen data from fixed but unknown environmental dynamics as well as learning involving in-context memory.
 - **simulated_market**: A trading agent that learns to adapt its strategy in a simulated market using Retrieval-Augmented Generation (RAG). This task emphasizes agent flexibility and its ability to learn from a wide range of environmental dynamics as well as learning involving retrieval augmented generation (RAG).
 - **ecosystem**: Knowledge-graph-based ecosystem dynamics learning. This task emphasizes agent ability to learn using a knowledge graph.
 
 ## Validation Tasks (not included in main agent-type aggregates)
 
 - **ev_charging_policy**: EV Charging Policy Optimization (Multi-Turn). A 10-turn benchmark where the model builds an internal model of consistent EV arrival patterns and selects discrete policy parameters to maximize a weighted utility. Associated agent types for validation mapping: `model_based_reflex`, `utility_based`.
+
+- **MMAU Benchmark Tasks**: Tasks from the MMAU benchmark (https://arxiv.org/abs/2407.18961). Covers a wide range of agent types. See below for special instructions on running MMAU Benchmark Tasks for validation. It is highly recommended that you do the following in a new workspace, i.e. in a separate directory to the root of the AgenticEvals root. This is because the process requires creating a new virtual environment and .env files.
+
+```bash
+# make sure you are working from a new empty directory.
+mkdir MMAU_validation
+cd MMAU_validation
+# clone the modified MMAU benchmartk
+git clone https://github.com/Gorn41/axlearn.git
+# deactivate any virtual environment that might currently be active and create 
+# a new one specifically for MMAU benchmark tasks
+deactivate
+python -m venv MMAUvenv
+source MMAUvenv/bin/activate
+# install the dependencies for running the MMAU benchmark
+cd axlearn
+pip install ".[mmau]"
+cd ..
+# Run the setup script associated with MMAU (note that you will need 
+# Google Application Credentials, Vertex AI details and an OpenAI key for this)
+python MMAU_setup.py
+# To easily run all MMAU validation tasks on a specific model do the following:
+chmod +x run_MMAU_validation.sh
+./run_MMAU_validation.sh --model <name>
+# E.g. ./run_MMAU_validation.sh --model gemini-2.5-flash
+# Make sure you increase API usage limit otherwise you may be rate limited
+# Results can be found in the outputs/ folder
+```
 
 ## Development
 
