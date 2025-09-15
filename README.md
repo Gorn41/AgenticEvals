@@ -19,7 +19,7 @@ AgenticEvals provides a structured framework to evaluate how well LLMs can embod
 ```bash
 git clone https://github.com/Gorn41/AgenticEvals.git
 cd AgenticEvals
-python -m venv .venv
+python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
 ```
@@ -321,7 +321,7 @@ git clone https://github.com/Gorn41/axlearn.git
 # deactivate any virtual environment that might currently be active and create 
 # a new one specifically for MMAU benchmark tasks
 deactivate
-python -m venv MMAUvenv
+python3 -m venv MMAUvenv
 source MMAUvenv/bin/activate
 # install the dependencies for running the MMAU benchmark
 cd axlearn
@@ -329,7 +329,7 @@ pip install ".[mmau]"
 cd ..
 # Run the setup script associated with MMAU (note that you will need 
 # Google Application Credentials, Vertex AI details and an OpenAI key for this)
-python MMAU_setup.py
+python3 MMAU_setup.py
 # To easily run all MMAU validation tasks on a specific model do the following:
 chmod +x run_MMAU_validation.sh
 ./run_MMAU_validation.sh --model <name>
