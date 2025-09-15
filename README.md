@@ -23,7 +23,8 @@ git clone https://github.com/Gorn41/AgenticEvals.git
 cd AgenticEvals
 python3 -m venv .venv
 source .venv/bin/activate
-# IMPORTANT: remove vLLM from requirements.txt before running the line below if using MacOS or if issues with installation persist.
+# IMPORTANT: remove vLLM from requirements.txt before running the line below if using MacOS
+# or if issues with installation persist.
 pip install -r requirements.txt
 ```
 
