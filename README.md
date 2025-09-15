@@ -16,6 +16,8 @@ AgenticEvals provides a structured framework to evaluate how well LLMs can embod
 
 ### 1. Installation
 
+Note that it is highly recommended to use Linux, Unix or Windows Subsystem for Linux (WSL) to run this benchmark. You may run into some installation issues when using windows. If you do, make sure you have a C++ compiler installed. If issues persist, try installing requirements.txt without vLLM by commenting out vLLM in requirements.txt before running pip install -r requirements.txt, though this will prevent you from being able to run LLMs locally for this benchmark, meaning you will only have to rely on LLM API calls. Also note that the instructions below assumes you are using bash; the instructions you actually have to run may differ depending on the shell you are using. However, the general steps should be the same, just with differences in language.
+
 ```bash
 git clone https://github.com/Gorn41/AgenticEvals.git
 cd AgenticEvals
