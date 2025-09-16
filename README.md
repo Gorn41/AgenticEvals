@@ -122,13 +122,20 @@ Notes:
 
 ### Validation and Cross-Validation
 
+Flag behavior at a glance:
+
+- `--validate` (alone): computes cross-validation metrics on the results you just ran (within-agent-type LOO (Leave-One-Out) and cross-type LOO). Does not execute external validation tasks.
+- `--validate` + `--validation-config <path>`: computes cross-validation metrics and external prediction proxies from aggregated agent-type scores defined in the config. Still does not execute external validation task.
+- `--validation-only` + `--validation-config <path>`: executes only the external validation tasks listed in the config and skips the core benchmarks. Add `--validate` if you also want prediction proxies printed for those runs.
+- To run both core benchmarks and validation benchmarks in one session, run two commands: first your core run (optionally with `--validate`), then a second command with `--validation-only --validation-config <path>` (and `--validate` if you want proxies printed).
+
 Run with built-in cross-validation:
 
 ```bash
 python3 run.py --model gemma-3-4b-it --validate --wait-seconds 0
 ```
 
-Provide a validation config listing external validation benchmarks to execute (names must be registered via the validation registry):
+Provide a validation config listing external validation tasks (names must be registered via the validation registry). This file is used either to compute prediction proxies (when passed with `--validate`) or to actually execute those validation tasks (when passed with `--validation-only`):
 
 ```yaml
 # validation_benchmarks.yaml
@@ -136,17 +143,17 @@ validation_benchmarks:
   - name: ev_charging_policy
 ```
 
-Run with config:
+Run with config (cross-validation + prediction proxies only; does NOT execute the validation tasks):
 
 ```bash
 python3 run.py --model gemma-3-4b-it --validate --validation-config validation_benchmarks.yaml
 ```
 
-This runs only the listed validation benchmarks (e.g., `ev_charging_policy`) when used with `--validation-only`. Predictions are computed from current agent-type aggregates.
+Note: The command above does not execute the validation tasks. To execute the tasks listed in the config, add `--validation-only` (see next section). When you include `--validate`, prediction proxies are computed from current agent-type aggregates.
 
-### Validation-Only Mode (run only validation benchmarks)
+### Validation-Only Mode (run only validation tasks)
 
-Use `--validation-only` to execute only validation benchmarks listed in `--validation-config` and print prediction proxies.
+Use `--validation-only` to execute only validation tasks listed in `--validation-config`. Include `--validate` as shown to also print prediction proxies for those runs. This flag will also skip the core benchmarks.
 
 ```bash
 python3 run.py --model gemma-3-4b-it \
@@ -158,7 +165,7 @@ python3 run.py --model gemma-3-4b-it \
 
 ### Running a Subset with Validation
 
-You can run only certain benchmarks alongside validation by passing their names before the flags:
+You can run only certain core benchmarks with validation reporting (metrics/proxies) by passing their names before the flags:
 
 ```bash
 python3 run.py --model gemma-3-4b-it fraud_detection inventory_management \
@@ -183,7 +190,7 @@ This value is propagated to all benchmarks and used for any internal delays.
 - `--wait-seconds <float>`: delay between scenarios/turns (default 15.0; set 0 to disable).
 - `--plot`: generate plots and CSVs under `results/<model>/`.
 - `--verbose`: print additional per-task diagnostics.
-- `--validate`: enable validation/cross-validation reporting.
+- `--validate`: enable validation/cross-validation reporting; does not run validation benchmarks.
 - `--validation-config <path>`: YAML listing validation benchmarks and their mapped agent types.
 - `--validation-only`: skip running core benchmarks and run validation benchmarks.
 
