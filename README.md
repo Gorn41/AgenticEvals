@@ -126,8 +126,8 @@ Flag behavior at a glance:
 
 - `--validate` (alone): computes cross-validation metrics on the results you just ran (within-agent-type LOO (Leave-One-Out) and cross-type LOO). Does not execute external validation tasks.
 - `--validate` + `--validation-config <path>`: computes cross-validation metrics and external prediction proxies from aggregated agent-type scores defined in the config. Still does not execute external validation task.
-- `--validation-only` + `--validation-config <path>`: executes only the external validation tasks listed in the config and skips the core benchmarks. Add `--validate` if you also want prediction proxies printed for those runs.
-- To run both core benchmarks and validation benchmarks in one session, run two commands: first your core run (optionally with `--validate`), then a second command with `--validation-only --validation-config <path>` (and `--validate` if you want proxies printed).
+- `--validation-only` + `--validation-config <path>`: executes only the external validation tasks listed in the config and skips the core benchmarks.
+- To run both core benchmarks and validation benchmarks in one session, run two commands: first your core run (optionally with `--validate` + `--validation-config <path>`), then a second command with `--validation-only --validation-config <path>`.
 
 Run with built-in cross-validation:
 
