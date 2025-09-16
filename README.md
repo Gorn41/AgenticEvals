@@ -224,7 +224,8 @@ AgenticEvals/
 │   │   ├── __init__.py
 │   │   ├── base.py             # BaseBenchmark, Task, TaskResult, AgentType
 │   │   ├── loader.py           # load_benchmark utilities
-│   │   └── registry.py         # @benchmark decorator and registry
+│   │   ├── registry.py         # Benchmark registry
+│   │   └── validation.py       # Validation functions
 │   ├── benchmarks/             # Individual benchmark implementations
 │   │   ├── __init__.py
 │   │   ├── ball_drop.py
